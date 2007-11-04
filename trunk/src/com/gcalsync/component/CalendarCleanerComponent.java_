@@ -1,0 +1,52 @@
+package com.gcalsync;
+
+import com.gcalsync.phonecal.PhoneCalClient;
+
+import javax.microedition.lcdui.Command;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.Form;
+
+/**
+ * @author Thomas Oldervoll, thomas@zenior.no
+ * @author $Author: thomasold $
+ * @version $Rev: 19 $
+ * @date $Date: 2006-12-21 16:42:52 -0500 (Thu, 21 Dec 2006) $
+ */
+public class CalendarCleanerComponent extends MVCComponent implements Runnable {
+
+    private Form form;
+
+    public void handle() {
+        showScreen();
+        (new Thread(this)).start();
+    }
+
+    public void run() {
+        form.append("Deleting " + Store.getIdCorrelator().phoneIdToGcalId.size() + " downloaded events...\n");
+        PhoneCalClient phoneCalClient = new PhoneCalClient();
+        phoneCalClient.removeDownloadedEvents();
+        form.append("done.\n");
+    }
+
+    public Displayable getDisplayable() {
+        return form;
+    }
+
+    protected void initModel() throws Exception {
+    }
+
+    protected void createView() throws Exception {
+        form = new Form("Deleting");
+    }
+
+    protected void updateView() throws Exception {
+    }
+
+    public void commandAction(Command command, Displayable screen) {
+        // TODO: Allow cancel
+        if (command.getCommandType() == Command.EXIT) {
+            Components.mainMenu.showScreen();
+        }
+    }
+
+}

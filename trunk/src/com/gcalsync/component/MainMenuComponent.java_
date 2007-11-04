@@ -1,0 +1,115 @@
+package com.gcalsync;
+
+import javax.microedition.lcdui.Alert;
+import javax.microedition.lcdui.AlertType;
+import javax.microedition.lcdui.Command;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.List;
+import javax.microedition.midlet.MIDlet;
+
+/**
+ * @author Thomas Oldervoll, thomas@zenior.no
+ * @author $Author$
+ * @version $Rev: 19 $
+ * @date $Date$
+ * TODO: let numeric keys choose in menu. Let 3 be hiddden "log" choice.
+ */
+public class MainMenuComponent extends MVCComponent {
+
+    private MIDlet midlet;
+    private List menu;
+    private Command selectCommand;
+
+    public void setMidlet(MIDlet midlet) {
+        this.midlet = midlet;
+    }
+
+    public Displayable getDisplayable() {
+        return menu;
+    }
+
+    protected void initModel() {
+    }
+
+    protected void createView() throws Exception {
+        menu = new List("GCalSync menu", List.IMPLICIT);
+        menu.append("Sync", null);
+        menu.append("Full resync", null);
+        //menu.append("Delete downloaded events", null);
+        menu.append("Options", null);
+        menu.append("Test", null);
+        menu.append("Log", null);
+        menu.append("About", null);
+        Command exitCommand = new Command("Exit", Command.EXIT, 2);
+        menu.addCommand(exitCommand);
+        selectCommand = new Command("Select", Command.SCREEN, 3);
+        menu.addCommand(selectCommand);
+        menu.setCommandListener(this);
+    }
+
+    protected void updateView() {
+    }
+
+    public void commandAction(Command command, Displayable displayable) {
+        if (command.getCommandType() == Command.EXIT) {
+            midlet.notifyDestroyed();
+        } else if ((command == List.SELECT_COMMAND) || (command == selectCommand)) {
+            int choice = menu.getSelectedIndex();
+            switch (choice) {
+                case 0:
+                    if (!Store.getOptions().isComplete()) {
+                        Components.login.returnToMainMenu = true;
+                        Components.login.handle();
+                    } else {
+                        new SyncComponent().handle();
+                    }
+                    break;
+                case 1:
+                    if (!Store.getOptions().isComplete()) {
+                        Components.login.returnToMainMenu = true;
+                        Components.login.handle();
+                    } else {
+                        Store.getTimestamps().lastSync = 0;
+                        new SyncComponent().handle();
+                    }
+                    break;
+//                case 2:
+//                    Components.calendarCleaner.handle();
+                case 2:
+                    Components.options.handle();
+                    break;
+                case 3:
+                    try {
+                        new TestComponent().handle();
+                    } catch (Exception e) {
+                        ErrorHandler.showError("Test run failed", e);
+                    }
+                    break;
+                case 4:
+                    Alert logAlert = new Alert("Log", ErrorHandler.log.toString(), null, AlertType.INFO);
+                    logAlert.setTimeout(Alert.FOREVER);
+                    display.setCurrent(logAlert, display.getCurrent());
+                    break;
+				case 5:
+					String version = "";
+					try {version = this.midlet.getAppProperty("MIDlet-Version");}
+					catch (Exception e) {}
+
+                    Alert aboutAlert = new Alert("About GCalSync " + version + " (Beta)", "GCalSync is developed by Thomas Oldervoll, Zenior AS. This is an early version. Please send bugs, comments and suggestions to gcalsync@zenior.no", null, AlertType.INFO);
+                    aboutAlert.setTimeout(Alert.FOREVER);
+                    display.setCurrent(aboutAlert, display.getCurrent());
+					break;
+            }
+        }
+    }
+
+    public void handle() {
+        if (!Store.getOptions().isComplete()) {
+            Components.login.returnToMainMenu = true;
+            Components.login.handle();
+        } else {
+            super.handle();
+        }
+    }
+
+}

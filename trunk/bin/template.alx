@@ -1,0 +1,42 @@
+<loader version="1.0">
+	<application id="GCalSync">
+		<name >
+		</name>
+		<description >
+		</description>
+		<version >
+		</version>
+		<vendor >
+		</vendor>
+		<copyright >
+			Copyright (c) 2007
+		</copyright>
+		<fileset Java="1.25">
+			<directory >
+			</directory>
+			<files >
+				gcalsync.cod
+			</files>
+		</fileset>
+		<application id="com_gcalsync_gcalsync">
+			<name >
+			</name>
+			<description >
+			</description>
+			<version >
+			</version>
+			<vendor >
+			</vendor>
+			<copyright >
+				Copyright (c) 2007
+			</copyright>
+			<fileset Java="1.25">
+				<directory >
+				</directory>
+				<files >
+					gcalsync.cod
+				</files>
+			</fileset>
+		</application>
+	</application>
+</loader>
