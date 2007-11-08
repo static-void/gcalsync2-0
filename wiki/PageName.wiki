@@ -1,0 +1,15 @@
+#FAQ.
+
+= Introduction =
+
+This is a FAQ for GCalSync2.
+
+
+= Installation Issues =
+
+*T-Mobile & BlackBerry: GCalSync2 installs and runs fine but it won't login. Why?*
+
+Set the following option
+Options>Advanced Options>TCP>APN set to wap.voicestream.com 
+
+_Note: For other provider, try to determine their APN settings if one exists_
