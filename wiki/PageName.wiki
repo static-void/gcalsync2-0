@@ -21,4 +21,4 @@ o For all other BlackBerrys
 - Go to options
 - Go to security options
 - Go to TLS
-- Change TLS Default to Handled instead of Proxy 
+- Change TLS Default to Handheld instead of Proxy 
