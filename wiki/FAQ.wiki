@@ -9,10 +9,14 @@ This is a FAQ for GCalSync2.
 
 *GCalSync2 installs and runs fine but it won't login. Why?*
 
-o BlackBerry & T-Mobile
+o BlackBerry APN Settings
+
 
 Set the following option
-Options>Advanced Options>TCP>APN set to wap.voicestream.com 
+Options>Advanced Options>TCP>APN set to the following:
+
+T-Mobile: wap.voicestream.com
+Vodafone Italy: web.vodafone.it 
 
 _Note: For other provider, try to determine their APN settings if one exists_
 
