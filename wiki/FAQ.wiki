@@ -15,8 +15,8 @@ o BlackBerry APN Settings
 Set the following option
 Options>Advanced Options>TCP>APN set to the following:
 
-* T-Mobile: wap.voicestream.com
-* Vodafone Italy: web.vodafone.it 
+* T-Mobile: wap.voicestream.com <br>
+* Vodafone Italy: web.vodafone.it <br>
 
 _Note: For other provider, try to determine their APN settings if one exists_
 
