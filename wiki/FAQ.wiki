@@ -4,7 +4,6 @@
 
 This is a FAQ for GCalSync2.
 
-
 = Installation Issues =
 
 *GCalSync2 installs and runs fine but it won't login. Why?*
@@ -15,8 +14,9 @@ o BlackBerry APN Settings
 Set the following option
 Options>Advanced Options>TCP>APN set to the following:
 
- * T-Mobile: wap.voicestream.com 
- * Vodafone Italy: web.vodafone.it 
+ * US T-Mobile: wap.voicestream.com
+ * US Cellular One: cellular1wap 
+ * Italy Vodafone: web.vodafone.it 
 
 _Note: For other provider, try to determine their APN settings if one exists_
 
@@ -26,3 +26,5 @@ o For all other BlackBerrys
 - Go to security options
 - Go to TLS
 - Change TLS Default to Handled instead of Proxy 
+
+After making the changes, you may need to reboot your BlackBerry
