@@ -5,6 +5,10 @@
 This is a FAQ for GCalSync2.
 
 = Installation Issues =
+* How do you install it?
+
+Using your phone, go to http://gcalsync.mobi and your phone will be prompted to
+download GCalSync2.
 
 *GCalSync2 installs and runs fine but it won't login. Why?*
 
