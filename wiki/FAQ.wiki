@@ -24,6 +24,8 @@ Options>Advanced Options>TCP>APN set to the following:
 
 _Note: For other provider, try to determine their APN settings if one exists_
 
+You can find your phone's APN from this site: http://www.pinstack.com/carrier_settings_apn_gateway.html
+
 o For all other BlackBerrys
 
 - Go to options
