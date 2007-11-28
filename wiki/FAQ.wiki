@@ -10,6 +10,20 @@ This is a FAQ for GCalSync2.
 Using your phone, go to http://gcalsync.mobi and your phone will be prompted to
 download GCalSync2.
 
+For NOKIA Phones (you might need to allow downloading unsigned JAR)
+
+1) Go to Tools
+
+2) Click on App.Mgr
+
+3) Select Options->Settings
+
+4) Change Software Installation from Signed Only to "All"
+
+5) Change Online Certif. Check to "Off"
+
+And then try to download application.
+
 *GCalSync2 installs and runs fine but it won't login. Why?*
 
 o BlackBerry APN Settings
