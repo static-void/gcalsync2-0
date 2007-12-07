@@ -77,4 +77,28 @@
         </target>
 
     -->
+    <!--
+     <target name="pre-jar">
+        <available file="${platform.home}/bin/rapc.exe" property="do.rapc"/>
+        <condition property="jpda.port" value="8000">
+            <isset property="do.rapc"/>
+        </condition>
+    </target>
+    <target name="post-jar" if="do.rapc">
+        <exec dir="${platform.home}/simulator" executable="${platform.home}/bin/rapc.exe" failonerror="true">
+            <arg value="import=${platform.bootclasspath}"/>
+            <arg value="codename=${name}"/>
+            <arg value="-midlet"/>
+            <arg value="jad=${basedir}/${dist.dir}/${dist.jad}"/>
+            <arg value="${basedir}/${dist.dir}/${dist.jar}"/>
+        </exec>
+    </target>
+    <target name="post-clean">
+        <delete failonerror="false">
+            <fileset dir="${platform.home}/simulator">
+                <include name="**/${name}.*"/>
+            </fileset>
+        </delete>
+    </target>
+   -->
 </project>
