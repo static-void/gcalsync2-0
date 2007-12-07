@@ -1,0 +1,12 @@
+MIDlet-Name: gcalsync
+MIDlet-Version: 2.0.3
+MIDlet-Vendor: Primo Sync LLC
+MIDlet-Description: Syncs Google Calendar with your mobile device's built-in calendar
+MIDlet-Jar-URL: gcalsync.jar
+MIDlet-Jar-Size: 0
+MicroEdition-Profile: MIDP-2.0
+MicroEdition-Configuration: CLDC-1.1
+MIDlet-1: GCalSync,../src/com/gcalsync.png,com.gcalsync.GCalSync
+RIM-MIDlet-Icon-1-1: ../src/res/gcalsync.png
+RIM-MIDlet-Icon-Count-1: 1
+RIM-MIDlet-Flags-1: 0

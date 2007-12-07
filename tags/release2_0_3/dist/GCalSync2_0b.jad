@@ -1,0 +1,15 @@
+Build-Date: November 3, 2007
+MIDlet-1: GCalSync,/com/gcalsync.png,com.gcalsync.GCalSync
+MIDlet-Description: Syncs Google Calendar with your mobile device's built-in calendar
+MIDlet-Icon: gcalsync.png
+MIDlet-Info-URL: http://code.google.com/p/gcalsync2-0
+MIDlet-Jar-Size: 144618
+MIDlet-Jar-URL: GCalSync2_0b.jar
+MIDlet-Name: GCalSync2.0b
+MIDlet-Permissions: javax.microedition.io.Connector.http, javax.microedition.io.Connector.https, javax.microedition.pim.EventList.read, javax.microedition.pim.EventList.write
+MIDlet-Vendor: Vendor
+MIDlet-Version: 2.0
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
+RIM-COD-Module-Dependencies: net_rim_cldc,net_rim_pdap
+RIM-COD-URL: http://gcalsync2-0.googlecode.com/files/GCalSync2_0b.cod
