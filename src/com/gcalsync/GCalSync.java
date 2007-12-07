@@ -28,8 +28,16 @@ import com.gcalsync.log.*;
 public class GCalSync extends MIDlet {
 
     private Display display;
+    private static boolean started = false;
 
     protected void startApp() throws MIDletStateChangeException {
+        //check if the program has already started, this is needed when the program hides
+        //and re appears - if the program is re apearing then do not show the login screen,
+        //there is already an screen being shown
+        if(started) return;
+        started = true;
+        
+        //do the startup and show the login screen
         display = Display.getDisplay(this);
         if (checkRequirements()) {
             setDependencies();
@@ -57,7 +65,7 @@ public class GCalSync extends MIDlet {
 
     private void setDependencies() {
 //#ifdef DEBUG_LOG
-        ErrorHandler.log = new StringBuffer();
+//#         ErrorHandler.log = new StringBuffer();
 //#endif
         ErrorHandler.display = display;
         MVCComponent.display = display;

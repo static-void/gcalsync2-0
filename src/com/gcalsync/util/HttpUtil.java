@@ -53,7 +53,7 @@ public class HttpUtil {
 
     public static byte[] sendRequest(String url, String method, String postData, String authorization, String contentType) {
 //#ifdef DEBUG_INFO
-        log("Sending request: url='" + url + "', method='" + method + "', postData='" + postData + "', authorization='" + authorization + "', contentType='" + contentType + "'");
+//#         log("Sending request: url='" + url + "', method='" + method + "', postData='" + postData + "', authorization='" + authorization + "', contentType='" + contentType + "'");
 //#endif
         HttpConnection connection = null;
         OutputStream out = null;
@@ -88,7 +88,7 @@ public class HttpUtil {
                         out.close();
                     } catch (IOException e) {
 //#ifdef DEBUG_ERR
-                        log("failed to close out for " + url + " due to " + e);
+//#                         log("failed to close out for " + url + " due to " + e);
 //#endif
                         e.printStackTrace();
                     }
@@ -100,7 +100,7 @@ public class HttpUtil {
 				lastResponseCode = status;
 				lastResponseMsg = connection.getResponseMessage();
 //#ifdef DEBUG_INFO
-                System.out.println("HTTP status code: " + status);
+//#                 System.out.println("HTTP status code: " + status);
 //#endif
                 if (status == HttpConnection.HTTP_TEMP_REDIRECT ||
                         status == HttpConnection.HTTP_MOVED_TEMP ||
@@ -109,7 +109,7 @@ public class HttpUtil {
                     url = connection.getHeaderField("location");
                     connection.close();
 //#ifdef DEBUG_INFO
-                    log("Redirecting to " + url);
+//#                     log("Redirecting to " + url);
 //#endif
                 } else {
                     // no redirect
@@ -183,8 +183,8 @@ public class HttpUtil {
         return responseData;
     }
 //#if DEBUG || DEBUG_INFO || DEBUG_WARN || DEBUG_ERR
-    private static void log(String message) {
-        System.out.println(message);
-    }
+//#     private static void log(String message) {
+//#         System.out.println(message);
+//#     }
 //#endif
 }

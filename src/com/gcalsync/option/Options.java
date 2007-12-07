@@ -48,8 +48,9 @@ public class Options extends Storable
 	public long uploadTimeZoneOffset = 0;
 	public boolean preview = true;
 	public boolean downloadAllCalendars = false;
+        public int autosyncTime = 30; //time between autosync in minutes
 
-	static final int DEFAULT_RECORD_VERSION = 1;
+	static final int DEFAULT_RECORD_VERSION = 2;
 
 	public Options()
 	{
@@ -83,6 +84,10 @@ public class Options extends Storable
 			download = in.readBoolean();
 			autoLogin = in.readBoolean();
 		}
+                
+                if(version >= 2) {
+                    autosyncTime = in.readInt();
+                }
 	}
 
 	public void writeRecord(DataOutputStream out) throws IOException 
@@ -103,5 +108,8 @@ public class Options extends Storable
 		out.writeBoolean(upload);
 		out.writeBoolean(download);
 		out.writeBoolean(autoLogin);
+                
+                //version 2
+                out.writeInt(autosyncTime);
 	}
 }

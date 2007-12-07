@@ -37,6 +37,7 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 	static final Command CMD_FULL_SYNC = new Command("Full Sync", "Start full sync", Command.ITEM, 1);
 	static final Command CMD_CANCEL = new Command("Cancel", Command.CANCEL, 4);
 	static final Command CMD_DOWNLOAD_LIST = new Command("Download", "Download calendar list", Command.ITEM, 2);
+        static final Command CMD_AUTO_SYNC = new Command("Auto Sync", "Start Auto Sync", Command.ITEM, 4);
 
 	Form form;
 	StringItem title;
@@ -112,8 +113,8 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 	 */
 	public void commandAction(Command c, Displayable d)
 	{
-
-		Alert a;
+            try {
+                boolean showNoCalendarSelectedAlert = false;
 
 		if (c == CMD_DOWNLOAD_LIST)
 			downloadFeeds();
@@ -133,11 +134,30 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 			}
 			else
 			{
-				a = new Alert("Error", "No calendars selected for Sync", null, AlertType.ERROR);
-				a.setTimeout(1000);
-				display.setCurrent(a);
+				showNoCalendarSelectedAlert = true;
 			}
 		}
+                else if(c == CMD_AUTO_SYNC) {
+                    if (isSelected(syncChoices)) {
+                        saveCalendarSettings();
+                        new AutoSyncComponent(gCalClient, feeds).handle();
+                    }
+                    else {
+                        showNoCalendarSelectedAlert = true;
+                    }
+                }
+                
+                
+                if(showNoCalendarSelectedAlert) {
+                    Alert a;
+                    
+                    a = new Alert("Error", "No calendars selected for Sync", null, AlertType.ERROR);
+                    a.setTimeout(1000);
+                    display.setCurrent(a);
+                }
+            }catch(Exception e) {
+                ErrorHandler.showError("CalendarFeedsComponent commandAction", e);
+            }
 	}
 
 	/**
@@ -190,6 +210,7 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 					form.addCommand(CMD_DOWNLOAD_LIST);
 					form.addCommand(CMD_FULL_SYNC);
 					form.addCommand(CMD_SYNC);
+                                        form.addCommand(CMD_AUTO_SYNC);
 				}
 			}
 		}

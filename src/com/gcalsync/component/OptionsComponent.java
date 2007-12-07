@@ -43,7 +43,8 @@ public class OptionsComponent extends MVCComponent {
         menu.append("Sync period", null);
         menu.append("Time zone", null);
         menu.append("Upload/download", null);
-		menu.append("Reset options", null);
+        menu.append("Autosync period", null);
+	menu.append("Reset options", null);
         Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
         menu.addCommand(cancelCommand);
         menu.setCommandListener(this);
@@ -78,9 +79,12 @@ public class OptionsComponent extends MVCComponent {
                 case 2:
                     Components.uploadDownload.handle();
                     break;
-				case 3:
-					Components.resetOptions.handle();
-					break;
+                case 3:
+                    Components.autosyncPeriodComponent.handle();
+                    break;
+                case 4:
+                    Components.resetOptions.handle();
+                    break;
             }
         }
     }

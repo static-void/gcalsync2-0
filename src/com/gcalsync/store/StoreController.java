@@ -69,7 +69,7 @@ public class StoreController {
             object.recordId = recordId;
             object.readRecord(dataIn);
 //#ifdef DEBUG_INFO
-            System.out.println("Read record " + recordId + " of type " + recordType);
+//#             System.out.println("Read record " + recordId + " of type " + recordType);
 //#endif
         } catch (InvalidRecordIDException e) {
             throw new StoreException("Failed to read record " + recordId + " ( " + recordType + " from " + name, e);
@@ -83,8 +83,8 @@ public class StoreController {
                     dataIn.close();
                 } catch (IOException e) {
 //#ifdef DEBUG_ERR
-                    ErrorHandler.log.append("Failed to close dataIn due to " + e);
-                    e.printStackTrace();
+//#                     ErrorHandler.log.append("Failed to close dataIn due to " + e);
+//#                     e.printStackTrace();
 //#endif
                 }
             }
@@ -93,8 +93,8 @@ public class StoreController {
                     byteIn.close();
                 } catch (IOException e) {
 //#ifdef DEBUG_ERR
-                    ErrorHandler.log.append("Failed to close byteIn due to " + e);
-                    e.printStackTrace();
+//#                     ErrorHandler.log.append("Failed to close byteIn due to " + e);
+//#                     e.printStackTrace();
 //#endif
                 }
             }
@@ -107,7 +107,7 @@ public class StoreController {
         if (objects == null || (objects != null && objects.length == 0)) {
             return null;
         }
-		
+                
         if (objects.length > 1) {
             throw new StoreException("name is not unique, found " + objects.length + " records");
         }
@@ -136,29 +136,29 @@ public class StoreController {
         return result;
     }
 
-	public void deleteRecords(byte recordType)
-	{
-		try
-		{
-			//get all records of the specified type
-			Storable[] st = readAll(recordType);
+        public void deleteRecords(byte recordType)
+        {
+                try
+                {
+                        //get all records of the specified type
+                        Storable[] st = readAll(recordType);
 
-			//open the record store to begin deleting records,
-			//delete the records, and then close the store
-			openRecordStore();
+                        //open the record store to begin deleting records,
+                        //delete the records, and then close the store
+                        openRecordStore();
 
-			for (int i=0; i<st.length; i++)
-				recordStore.deleteRecord(st[i].recordId);
+                        for (int i=0; i<st.length; i++)
+                                recordStore.deleteRecord(st[i].recordId);
 
-			closeRecordStore();
-		}
-		catch (Exception e)
-		{
+                        closeRecordStore();
+                }
+                catch (Exception e)
+                {
 //#ifdef DEBUG_ERR
-			System.out.println("deleteRec(): " + e);
+//#                         System.out.println("deleteRec(): " + e);
 //#endif
-		}
-	}
+                }
+        }
 
     public void write(Storable object) {
         openRecordStore();
@@ -186,7 +186,7 @@ public class StoreController {
                 object.recordId = recordStore.addRecord(newRecord, 0, newRecord.length);
             }
 //#ifdef DEBUG_INFO
-            System.out.println("Wrote record " + object.recordId + " of type " + object.recordType);
+//#             System.out.println("Wrote record " + object.recordId + " of type " + object.recordType);
 //#endif
         } catch (RecordStoreException e) {
             throw new StoreException("Failed to write record " + object.recordId + " ( " + object + ") to " + name, e);
@@ -240,7 +240,7 @@ public class StoreController {
             recordStore.closeRecordStore();
         } catch (RecordStoreException e) {
 //#ifdef DEBUG_ERR
-            ErrorHandler.log.append("Failed to close record store " + name + " due to " + e + "\n");
+//#             ErrorHandler.log.append("Failed to close record store " + name + " due to " + e + "\n");
 //#endif
         }
     }
