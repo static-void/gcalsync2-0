@@ -1,0 +1,11 @@
+MIDlet-Jar-URL: GCalSync1-2-12.jar
+MIDlet-Jar-Size: 72078
+MIDlet-Name: GCalSync
+MIDlet-Vendor: Zenior AS
+MIDlet-Version: 1.2.12
+MIDlet-1: GCalSync, gcalsync.png, com.gcalsync.GCalSync
+MIDlet-Description: Syncs Google Calendar with your mobile device's built-in calendar
+MIDlet-Icon: gcalsync.png
+MIDlet-Info-URL: http://code.google.com/p/gadjet
+MIDlet-Permissions: javax.microedition.io.Connector.http,javax.microedition.io.Connector.https,javax.microedition.pim.EventList.read,javax.microedition.pim.EventList.write
+Build-Date: February 3, 2007

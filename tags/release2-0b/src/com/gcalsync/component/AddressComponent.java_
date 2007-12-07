@@ -1,0 +1,80 @@
+package com.gcalsync;
+
+import javax.microedition.lcdui.Command;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.Form;
+import javax.microedition.lcdui.TextField;
+
+/**
+ * TODO:
+ * - refactor out RecordStore stuff - replace with Options, OptionsFactory
+ *
+ * @author Thomas Oldervoll, thomas@zenior.no
+ * @author $Author$
+ * @version $Rev: 1 $
+ * @date $Date$
+ */
+public class AddressComponent extends MVCComponent {
+
+    private static final String ADDRESS_PREFIX = "http://www.google.com/calendar/feeds/";
+
+    // view
+    private Form form;
+    private TextField addressField;
+    private Command saveCommand;
+
+    public Displayable getDisplayable() {
+        return form;
+    }
+
+    protected void initModel() {
+        // done in constructor
+    }
+
+    protected void createView() {
+        form = new Form("Calendar address");
+        addressField = new TextField("Address", getAddressSuggestion(), 200, TextField.NON_PREDICTIVE);
+        form.append(addressField);
+        form.append("If you fill out username and password you don't need to fill out this field.");
+        saveCommand = new Command("Save", Command.OK, 1);
+        Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
+        form.addCommand(saveCommand);
+        form.addCommand(cancelCommand);
+        form.setCommandListener(this);
+    }
+
+    private String getAddressSuggestion() {
+        String storedAddress = Store.getOptions().calendarAddress;
+        if ((storedAddress != null) && !"".equals(storedAddress)) {
+            return storedAddress;
+        } else {
+            return ADDRESS_PREFIX;
+        }
+    }
+
+    protected void updateView() {
+        addressField.setString(getAddressSuggestion());
+    }
+
+    public void commandAction(Command command, Displayable displayable) {
+        if (command.getLabel().equals(saveCommand.getLabel())) {
+            if (setOptions()) {
+                Store.saveOptions();
+                Components.options.handle();
+            }
+        } else if (command.getCommandType() == Command.CANCEL) {
+            Components.mainMenu.showScreen();
+        }
+    }
+
+    private boolean setOptions() {
+        String address = addressField.getString();
+        if (!ADDRESS_PREFIX.equals(address)) {
+            Store.getOptions().calendarAddress = address;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+}
