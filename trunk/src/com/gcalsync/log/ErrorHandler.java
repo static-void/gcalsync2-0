@@ -27,25 +27,33 @@ public class ErrorHandler {
     public static boolean debugMode = true;
     public static Display display;
 //#ifdef DEBUG_LOG
-    public static StringBuffer log;
+//#     public static StringBuffer log;
 //#endif
 
+    
+    public static void showError(Throwable t) {
+        display.setCurrent(getErrorAlert("Error", t));
+    }
+    
     public static void showError(String message, Throwable t) {
         display.setCurrent(getErrorAlert(message, t));
     }
 
     public static Alert getErrorAlert(String message, Throwable t) {
 //#ifdef DEBUG_ERR
-        if (t != null) {
-            t.printStackTrace();
-        }
+//#         if (t != null) {
+//#             t.printStackTrace();
+//#         }
 //#endif
 //#ifdef DEBUG_LOG
-        log.append(t + "\n");
+//#         log.append(t + "\n");
 //#endif
 
+
         if (debugMode) {
-            message += ": " + t + "\n";
+            t.printStackTrace();
+            
+            message += ": " + t.toString() + "\n";
         }
 
         Alert alert = new Alert("Error", message, null, AlertType.ERROR);

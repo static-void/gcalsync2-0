@@ -31,4 +31,5 @@ public class Components {
     public static CalendarFeedsComponent feeds = new CalendarFeedsComponent();
 	public static ResetOptionsComponent resetOptions = new ResetOptionsComponent();
 	public static PublicCalendarsComponent pubCal = new PublicCalendarsComponent();
+    public static AutosyncPeriodComponent autosyncPeriodComponent = new AutosyncPeriodComponent();
 }

@@ -55,7 +55,7 @@ public class Store {
 			catch (Exception e) 
 			{ 
 //#ifdef DEBUG_ERR
-				System.out.println("getOptions() failed...using default values, err=" + e);
+//# 				System.out.println("getOptions() failed...using default values, err=" + e);
 //#endif
 				options = null;
 			}
@@ -76,7 +76,7 @@ public class Store {
 		}
 		catch (Exception e) {
 //#ifdef DEBUG_ERR
-			System.out.println("Failed to delete record store: " + e.toString());
+//# 			System.out.println("Failed to delete record store: " + e.toString());
 //#endif
 		}
 	}
@@ -91,7 +91,7 @@ public class Store {
 			catch (Exception e) 
 			{ 
 //#ifdef DEBUG_ERR
-				System.out.println("getTimestamps() failed...using default values");
+//# 				System.out.println("getTimestamps() failed...using default values");
 //#endif
 				timestamps = null; 
 			}
@@ -133,7 +133,7 @@ public class Store {
 			catch (Exception e) 
 			{ 
 //#ifdef DEBUG_ERR
-				System.out.println("getFeeds() failed...using default values");
+//# 				System.out.println("getFeeds() failed...using default values");
 //#endif
 				storedFeeds = null;
 			}
