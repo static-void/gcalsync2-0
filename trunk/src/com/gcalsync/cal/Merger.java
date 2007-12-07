@@ -60,34 +60,34 @@ public class Merger {
         return gCalEvent;
     }
 
-	public boolean compareEvents(Event phoneEvent, GCalEvent gCalEvent)
-	{
-		GCalEvent pe = copyToGCalEvent(phoneEvent);
-		return (pe.id.equals(gCalEvent.id)
-				&& pe.title.equals(gCalEvent.title)
-				&& pe.note.equals(gCalEvent.note)
-				&& (pe.recur != null && gCalEvent.recur != null && pe.recur.equals(gCalEvent.recur))
-				&& pe.startTime == gCalEvent.startTime
-				&& pe.endTime == gCalEvent.endTime);
-	}
+        public boolean compareEvents(Event phoneEvent, GCalEvent gCalEvent)
+        {
+                GCalEvent pe = copyToGCalEvent(phoneEvent);
+                return (pe.id.equals(gCalEvent.id)
+                                && pe.title.equals(gCalEvent.title)
+                                && pe.note.equals(gCalEvent.note)
+                                && (pe.recur != null && gCalEvent.recur != null && pe.recur.equals(gCalEvent.recur))
+                                && pe.startTime == gCalEvent.startTime
+                                && pe.endTime == gCalEvent.endTime);
+        }
 
     public void mergeEvents(Event phoneEvent, GCalEvent gCalEvent, Form form) throws PIMException {
-		boolean success;
+                boolean success;
 
-		if (phoneEvent == null) {
+                if (phoneEvent == null) {
             if (!gCalEvent.cancelled && options.download) {
 //#ifdef DEBUG_INFO
-                System.out.println("=> Inserting event " + gCalEvent.title + ", not present in phone");
+//#                 System.out.println("=> Inserting event " + gCalEvent.title + ", not present in phone");
 //#endif
                 phoneEvent = copyToPhoneEvent(gCalEvent);
 
-				if (form != null) form.append("Saving \"" + gCalEvent.title + "\"...");
-				success = phoneCalClient.insertEvent(phoneEvent, gCalEvent.id);
+                                if (form != null) form.append("Saving \"" + gCalEvent.title + "\"...");
+                                success = phoneCalClient.insertEvent(phoneEvent, gCalEvent.id);
                 if (form != null) 
-				{
-					form.append(success ? "OK" : "ERR");
-					form.append("\n");
-				}
+                                {
+                                        form.append(success ? "OK" : "ERR");
+                                        form.append("\n");
+                                }
 
             }
             return;
@@ -99,9 +99,9 @@ public class Merger {
         boolean phoneEventHasChanged = phoneEventChangeTime > timestamps.lastSync;
         boolean gCalEventHasChanged = (gCalEvent.updated - timestamps.lastSync) > 2000; // 2 sec slack to allow for rounding etc
 //#ifdef DEBUG_INFO
-		//System.out.println("PhoneDT=" + DateUtil.longToIsoDateTime(phoneEventChangeTime) + " GCalDT=" +
-		//				   DateUtil.longToIsoDateTime(gCalEvent.updated) + " Upd=" + DateUtil.longToIsoDateTime(timestamps.lastSync));
-//#endif		
+//#             //System.out.println("PhoneDT=" + DateUtil.longToIsoDateTime(phoneEventChangeTime) + " GCalDT=" +
+//#             //                                 DateUtil.longToIsoDateTime(gCalEvent.updated) + " Upd=" + DateUtil.longToIsoDateTime(timestamps.lastSync));
+//#endif                
         boolean phoneCalWonMerge = phoneEventHasChanged;
         boolean gCalWonMerge = gCalEventHasChanged;
         if (options.mergeStrategy == Options.GCAL_WINS_MERGE) {
@@ -122,34 +122,34 @@ public class Merger {
         if (/*gCalWonMerge &&*/ options.download) {
             if (gCalEvent.cancelled) {
 //#ifdef DEBUG_INFO
-                System.out.println("=> Removing event " + gCalEvent.title + ", cancelled in GCal");
+//#                 System.out.println("=> Removing event " + gCalEvent.title + ", cancelled in GCal");
 //#endif
-				if (form != null) form.append("Removing \"" + gCalEvent.title + "\" from phone...");
+                                if (form != null) form.append("Removing \"" + gCalEvent.title + "\" from phone...");
                 success = phoneCalClient.removeEvent(phoneEvent);
             } else {
 //#ifdef DEBUG_INFO
-                System.out.println("=> Updating event " + gCalEvent.title + " in phone");
+//#                 System.out.println("=> Updating event " + gCalEvent.title + " in phone");
 //#endif
-				if (form != null) form.append("Updating \"" + gCalEvent.title + "\" in phone...");
+                                if (form != null) form.append("Updating \"" + gCalEvent.title + "\" in phone...");
                 mergeIntoPhoneEvent(phoneEvent, gCalEvent);
                 success = phoneCalClient.updateEvent(phoneEvent);
             }
 
-			if (form != null) 
-			{
-				form.append(success ? "OK" : "ERR");
-				form.append("\n");
-			}
+                        if (form != null) 
+                        {
+                                form.append(success ? "OK" : "ERR");
+                                form.append("\n");
+                        }
         }
-		//bug: if you do a full sync and the same event gets committed, the phone Cal wins
-		//merge because it was written at a time after the GCalEvent was updated in Google
-		// so, phoneCal tries to upload the event back to Google. I think it's a good idea
-		// to let the Gcal win merge but not the other way around
-		/*else if (phoneCalWonMerge && options.shouldUpdateGCal()) {
+                //bug: if you do a full sync and the same event gets committed, the phone Cal wins
+                //merge because it was written at a time after the GCalEvent was updated in Google
+                // so, phoneCal tries to upload the event back to Google. I think it's a good idea
+                // to let the Gcal win merge but not the other way around
+                /*else if (phoneCalWonMerge && options.shouldUpdateGCal()) {
 //#ifdef DEBUG_INFO
-            System.out.println("=> Updating event " + gCalEvent.title + " in GCal");
+//#             System.out.println("=> Updating event " + gCalEvent.title + " in GCal");
 //#endif
-			if (form != null) form.append("Updating \"" + gCalEvent.title + "\" in GCal...\n");
+                        if (form != null) form.append("Updating \"" + gCalEvent.title + "\" in GCal...\n");
             mergeIntoGCalEvent(phoneEvent, gCalEvent);
             gCalClient.updateEvent(gCalEvent);
         }*/
@@ -165,15 +165,29 @@ public class Merger {
         if (isSet(gCalEvent.location)) {
             phoneCalClient.setStringField(phoneEvent, Event.LOCATION, gCalEvent.location);
         }
-		
+                
         if (isSet(gCalEvent.startTime)) {
             phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime);
         }
+//Yusuf: Remove code
+/*
+System.out.println("Event ID: "+gCalEvent.id);
+System.out.println("Event EventID: "+gCalEvent.origEventId);
+System.out.println("Event Title: " + gCalEvent.title);
+System.out.println("Event Note: " + gCalEvent.note);
+System.out.println("Event Start: " + gCalEvent.startTime);
+System.out.println("Event End: " + gCalEvent.endTime);
+*/
 
-		if (gCalEvent.isAllDay()) {
-			//all-day PIM events are indicated by matching start and end times
-			if (isSet(gCalEvent.startTime)) phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime);
-		}
+                if (gCalEvent.isAllDay()) {
+                        //all-day PIM events are indicated by matching start and end times
+                        //if (isSet(gCalEvent.startTime)) phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime);
+                        if (isSet(gCalEvent.startTime)){ 
+                            
+                            phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime);
+                            phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime);
+                        }
+                }
         else if (isSet(gCalEvent.endTime)) {
             phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.endTime);
         }
@@ -182,16 +196,16 @@ public class Merger {
             phoneCalClient.setIntField(phoneEvent, Event.ALARM, gCalEvent.reminder * 60);
         }
 
-		try 
-		{ 
-			if (gCalEvent.recur != null && gCalEvent.recur.getRepeat() != null) 
-				phoneEvent.setRepeat(gCalEvent.recur.getRepeat()); 
-		}
-		catch (Exception e) { 
+                try 
+                { 
+                        if (gCalEvent.recur != null && gCalEvent.recur.getRepeat() != null) 
+                                phoneEvent.setRepeat(gCalEvent.recur.getRepeat()); 
+                }
+                catch (Exception e) { 
 //#ifdef DEBUG_ERR
-			System.out.println("Failed to copy repeat rule into phone cal, error=" + e.toString()); 
+//#                     System.out.println("Failed to copy repeat rule into phone cal, error=" + e.toString()); 
 //#endif
-		}
+                }
     }
 
     private boolean isSet(String value) {
@@ -229,30 +243,30 @@ public class Merger {
             gCalEvent.endTime = endDate;
         }
 
-		if (gCalEvent.isAllDay(Store.getOptions().uploadTimeZoneOffset))
-		{
-			//TODO: BlackBerry phones start all-day events on previous day (bug in BB OS?)
-			//adjust for this behavior...not sure if other phones follow this behavior
-			//so we'll have to add an option to enable the adjustment
-			gCalEvent.startTime += 1000*60*60*24;
-			gCalEvent.endTime += 1000*60*60*24;
-		}
+                if (gCalEvent.isAllDay(Store.getOptions().uploadTimeZoneOffset))
+                {
+                        //TODO: BlackBerry phones start all-day events on previous day (bug in BB OS?)
+                        //adjust for this behavior...not sure if other phones follow this behavior
+                        //so we'll have to add an option to enable the adjustment
+                        //Yusuf: gCalEvent.startTime += 1000*60*60*24;
+                        //Yusuf: gCalEvent.endTime += 1000*60*60*24;
+                }
 
         int alarm = phoneCalClient.getIntField(phoneEvent, Event.ALARM);
         if (isSet(alarm)) {
             gCalEvent.reminder = alarm / 60;
         }
 
-		try 
-		{
-			if (phoneEvent.getRepeat() != null)
-				gCalEvent.recur = new Recurrence(phoneEvent.getRepeat(), startDate, endDate); 
-		}
-		catch (Exception e) { 
+                try 
+                {
+                        if (phoneEvent.getRepeat() != null)
+                                gCalEvent.recur = new Recurrence(phoneEvent.getRepeat(), startDate, endDate); 
+                }
+                catch (Exception e) { 
 //#ifdef DEBUG_ERR
-			System.out.println("Failed to copy repeat rule into gCal, error=" + e.toString()); 
+//#                     System.out.println("Failed to copy repeat rule into gCal, error=" + e.toString()); 
 //#endif
-		}
+                }
     }
 
 }
