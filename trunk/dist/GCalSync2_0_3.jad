@@ -1,0 +1,13 @@
+MIDlet-1: GCalSync,/Res/gcalsync.png,com.gcalsync.GCalSync
+MIDlet-Description: Syncs Google Calendar with your mobile device's built-in calendar
+MIDlet-Icon: gcalsync.png
+MIDlet-Info-URL: http://code.google.com/p/gcalsync2-0
+MIDlet-Jar-Size: 117714
+MIDlet-Jar-URL: GCalSync2_0_3.jar
+MIDlet-Name: GCalSync
+MIDlet-Permissions: javax.microedition.io.Connector.http, javax.microedition.io.Connector.https, javax.microedition.pim.EventList.read, javax.microedition.pim.EventList.write
+MIDlet-Vendor: Primo Sync LLC
+MIDlet-Version: 2.0.3
+Manifest-Version: 1.0
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
