@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+MIDlet-Version: 2.0.3
+MIDlet-Jar-Size: 112578
+MicroEdition-Configuration: CLDC-1.1
+MIDlet-Jar-URL: gcalsync.jar
+RIM-MIDlet-Icon-1-1: ../src/res/gcalsync.png
+RIM-COD-Module-Dependencies: net_rim_cldc,net_rim_pdap,kxml-min.zip,harmony
+RIM-MIDlet-Flags-1: 0
+RIM-COD-Module-Name: GCalSync2_0_3
+RIM-COD-Size: 63108
+MIDlet-Name: gcalsync
+RIM-COD-Creation-Time: 1196999515
+MIDlet-1: GCalSync,../src/com/gcalsync.png,com.gcalsync.GCalSync
+RIM-COD-URL: GCalSync2_0_3.cod
+MIDlet-Description: Syncs Google Calendar with your mobile device's built-in calendar
+RIM-COD-SHA1: 84 52 aa 8f 53 ed b3 8b 59 44 2c d6 05 c7 5b 30 1d 5e a3 f9
+MicroEdition-Profile: MIDP-2.0
+MIDlet-Vendor: Primo Sync LLC
+RIM-MIDlet-Icon-Count-1: 1
