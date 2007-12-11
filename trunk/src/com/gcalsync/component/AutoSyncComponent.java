@@ -38,8 +38,11 @@ import javax.microedition.lcdui.Form;
 import javax.microedition.lcdui.StringItem;
 
 /**
- * 
+ * Component that implements the autosync functionality
  * @author Agustin
+ * @author Yusuf Abdi
+ * @version $Rev: 1 $
+ * @date $Date: 2007-12-30 03:22:30 -0500 (Sat, 30 Dec 2007) $
  */
 public class AutoSyncComponent extends MVCComponent {
     
@@ -157,7 +160,7 @@ public class AutoSyncComponent extends MVCComponent {
         PhoneCalClient phoneCalClient = new PhoneCalClient();
         
         commitEngine.commitSync(eventForSync[0], eventForSync[1], this.gCalClient, phoneCalClient, this.form);
-
+        
         phoneCalClient.close();
         
         //update the statistics

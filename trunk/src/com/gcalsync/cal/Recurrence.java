@@ -937,7 +937,7 @@ public class Recurrence {
             }
             
             try {
-                int val = Integer.parseInt(offset);
+                int val = DateUtil.parseSignedInt(offset);
                 int hours = val / 100;
                 int minutes = val % 100;
                 return  (hours * 60 + minutes) * 60 * 1000 * mult;

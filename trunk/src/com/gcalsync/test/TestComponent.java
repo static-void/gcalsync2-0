@@ -1,10 +1,17 @@
 /*
- * TestComponent.java
- *
- * Created on 5 de diciembre de 2007, 01:53 AM
- *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+   Copyright 2007 *****************
+ 
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+ 
+       http://www.apache.org/licenses/LICENSE-2.0
+ 
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
  */
 
 package com.gcalsync.test;
@@ -30,8 +37,11 @@ import javax.microedition.pim.EventList;
 import javax.microedition.pim.PIM;
 
 /**
- *
- * @author Agustin Rivero (agustin.rivero.work@gmail.com)
+ * 
+ * @author Agustin
+ * @author Yusuf Abdi
+ * @version $Rev: 1 $
+ * @date $Date: 2007-12-30 03:22:30 -0500 (Sat, 30 Dec 2007) $
  */
 public class TestComponent extends MVCComponent  {
     private static final Command CMD_CANCEL = new Command("Close", Command.CANCEL, 2);
@@ -70,8 +80,9 @@ public class TestComponent extends MVCComponent  {
         this.form.addCommand(CMD_BB_INFO);
         this.form.addCommand(CMD_ADD_EVENT);
         this.form.setCommandListener(this);
+        //com.nokia.microedition.pim.EventImpl ei;
         
-        addInfo("Test screen", "");
+        addInfo("Test screen  ", "v6");
     }
     
     /**
@@ -132,7 +143,19 @@ public class TestComponent extends MVCComponent  {
                 
                 GCalEvent gCalEvent = merger.copyToGCalEvent(phoneEvent);
                 
-                this.form.append(gCalEvent.toString());
+                String extraInfo = " S" + DateUtil.longToDateTimeGMT(gCalEvent.startTime) + " E" + DateUtil.longToDateTimeGMT(gCalEvent.endTime) +
+                        " S2" + DateUtil.longToDateTime(gCalEvent.startTime) + " E2" + DateUtil.longToDateTime(gCalEvent.endTime);
+                
+                String[] ss = phoneEvent.getCategories();
+                for(int i = 0; i < ss.length; i++) {
+                    extraInfo += "\n" + ss[i];
+                }
+                if(ss.length == 0) {
+                    extraInfo += " NOC";
+                }
+                extraInfo += " PAL" + gCalEvent.isPlatformAllday;
+                
+                this.form.append(gCalEvent.toString() + extraInfo + "\n");
             }
             
             phoneCalClient.close();
@@ -154,6 +177,20 @@ public class TestComponent extends MVCComponent  {
             EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
             
             addInfo("ALLDAY supported?: ", "" + phoneEventList.isSupportedField(allday));
+            
+            String[] cs = phoneEventList.getCategories();
+            for(int i = 0; i < cs.length; i++) {
+                addInfo("\ncategory", cs[i]);
+            }
+            
+            //Integer.parseInt("+010");
+            Integer.parseInt("-010");
+            System.out.println("2: " + DateUtil.parseSignedInt("-0100"));
+            System.out.println("3: " + DateUtil.parseSignedInt("+0100"));
+            System.out.println("4: " + DateUtil.parseSignedInt("-0000"));
+            System.out.println("4: " + DateUtil.parseSignedInt("+1"));
+            System.out.println("4: " + DateUtil.parseSignedInt("8"));
+            
         }catch(Exception e) {
             ErrorHandler.showError(e);
         }
@@ -164,14 +201,27 @@ public class TestComponent extends MVCComponent  {
             this.form.deleteAll();
             
             GCalEvent gCalEvent = new GCalEvent();
-            gCalEvent.title = "j2me event";
-            gCalEvent.startTime = DateUtil.dateToLong("20071207");
-            gCalEvent.endTime = DateUtil.dateToLong("20071208");
+            gCalEvent.title = "j2me event(nokia)";
+            gCalEvent.startTime = DateUtil.dateToLong("20071214");
+            gCalEvent.endTime = DateUtil.dateToLong("20071215");
             
             PhoneCalClient phoneCalClient = new PhoneCalClient();
             
             Merger merger = new Merger(phoneCalClient, null);
             Event phoneEvent = merger.copyToPhoneEvent(gCalEvent);
+            
+            int[] fields = phoneEvent.getFields();
+            for(int i = 0; i < fields.length; i++) {
+                addInfo("", "\n" + i + " = " + fields[i]);
+            }
+            
+            /*for(int i = com.nokia.microedition.pim.EventImpl.EXTENDED_FIELD_MIN_VALUE-10000; i < com.nokia.microedition.pim.EventImpl.EXTENDED_FIELD_MIN_VALUE + 99999; i++) {
+                
+                if(phoneEvent.getPIMList().isSupportedField(i)) {
+                    addInfo("", "\nsupported: " + i);
+                }
+            }*/
+            
             phoneCalClient.insertEvent(phoneEvent, "1234567890");
             phoneCalClient.close();
             

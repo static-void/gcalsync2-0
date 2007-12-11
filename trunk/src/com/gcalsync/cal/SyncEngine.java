@@ -37,8 +37,11 @@ import javax.microedition.lcdui.Form;
 import javax.microedition.pim.Event;
 
 /**
- * This class contains code that was previously on SyncComponent
+ * Class to obtain which events to sync.  Contains code that was previously on SyncComponent. 
  * @author Agustin
+ * @author Yusuf Abdi
+ * @version $Rev: 1 $
+ * @date $Date: 2007-12-30 03:22:30 -0500 (Sat, 30 Dec 2007) $
  */
 public class SyncEngine {
     /** Creates a new instance of SyncEngine */

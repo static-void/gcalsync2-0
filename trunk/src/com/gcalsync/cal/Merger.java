@@ -20,6 +20,8 @@
  *      -mergeIntoGCalEvent: BlackBerry patch for allday events remove - it is no longer needed
  *      -mergeIntoPhoneEvent: support for allday events added BlackBerryes (and non BB)
  *      -the GCalEvent.updated field now is used (get from and set into phone Event)
+ *  --/dec/2007 Agustin
+ *      -mergeIntoGCalEvent: reads BB allday events using RIM API (RIM's ALLDAY field)
  */
 package com.gcalsync.cal;
 
@@ -49,6 +51,7 @@ public class Merger {
     private GCalClient gCalClient;
     private Options options;
     
+    private static final int BB_ALLDAY_FIELD = 20000928; //net.rim.blackberry.api.pim.BlackBerryEvent.ALLDAY
     
     public Merger(PhoneCalClient phoneCalClient, GCalClient gCalClient) {
         this.phoneCalClient = phoneCalClient;
@@ -171,26 +174,37 @@ public class Merger {
             phoneCalClient.setStringField(phoneEvent, Event.LOCATION, gCalEvent.location);
         }
         
-        boolean useStartAsEnd = false;
+        boolean fixTimeForAlldayEvent = false;
+        // apparently in Nokia in J2ME allday events are saved one day forward (or the end time is used), so
+        // let's fix that when saving
+        
         if(gCalEvent.isAllDay()) {
-            int alldayFieldId = 20000928; //net.rim.blackberry.api.pim.BlackBerryEvent.ALLDAY
-            if(!phoneCalClient.setBoolean(phoneEvent, alldayFieldId, true)) {
+            if(phoneCalClient.setBooleanField(phoneEvent, BB_ALLDAY_FIELD, true)) {
                 //if I could set the boolean that means that I am in a BlackBerry and so the event
                 //is set as an allday event.
                 //if I could not set the boolean that means that I am not in a BlackBerry, so follow
                 //the Java documentation that says that allday events are events with the same start
                 //and end date/time
-                useStartAsEnd = true;
+                fixTimeForAlldayEvent = false;
+            }
+            else {
+                fixTimeForAlldayEvent = true;
             }
         }
         
         if (isSet(gCalEvent.startTime)) {
-            phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime);
+            if(fixTimeForAlldayEvent) {
+                //TODO: support allday events that last more than one day for non blackberry devices
+                phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime + 24 * 60 * 60 * 1000);
+            }
+            else {
+                phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime);
+            }
         }
         if (isSet(gCalEvent.endTime)) {
-            if(useStartAsEnd) { //use start as end for allday events
+            if(fixTimeForAlldayEvent) { //use start as end for allday events
                 //TODO: support allday events that last more than one day for non blackberry devices
-                phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime);
+                phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime + 24 * 60 * 60 * 1000);
             }
             else {
                 phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.endTime);
@@ -244,6 +258,18 @@ public class Merger {
         long endDate = phoneCalClient.getDateField(phoneEvent, Event.END);
         if (isSet(endDate)) {
             gCalEvent.endTime = endDate;
+        }
+        
+        //Read the BlackBerry allday filed to know for sure if the event is an allday event
+        long alldayEvent = phoneCalClient.getBooleanField(phoneEvent, BB_ALLDAY_FIELD);
+        if(alldayEvent == 0) gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_NO;
+        else if(alldayEvent == 1) gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_YES;
+        else gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_UNKNOWN; //if we are not in a BB
+        
+        //now let's fix the time of allday events; from Nokia experience allday events are saved one
+        //day forward, so lets fix that
+        if(gCalEvent.endTime == gCalEvent.startTime && gCalEvent.isPlatformAllday == GCalEvent.PLATFORM_ALLDAY_UNKNOWN) {
+            gCalEvent.startTime -= 24 * 60 * 60 * 1000;
         }
         
        /* if (gCalEvent.isAllDay(Store.getOptions().uploadTimeZoneOffset)) {

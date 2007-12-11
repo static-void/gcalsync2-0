@@ -25,15 +25,22 @@
  *      -new properties: uid, phoneCalId, eventIsToBeUpdated and autoSyncCantidate
  *      -asXML: fixed the way the date is printed as to support correctly all day events at google
  *      -toString: prints [UPDATE] before the event name if the event was updated
+ *  --/dec/2007 Agustin
+ *      -new property: isPlatformAllday
+ *      -isAllDay: now it used the new property isPlatformAllday
  */
-
 package com.gcalsync.cal.gcal;
 
 import com.gcalsync.util.DateUtil;
 import com.gcalsync.cal.Recurrence;
 import com.gcalsync.store.Store;
 
-
+/**
+ * @author Thomas Oldervoll, thomas@zenior.no
+ * @author $Author: batcage $
+ * @version $Rev: 38 $
+ * @date $Date: 2006-12-30 03:22:30 -0500 (Sat, 30 Dec 2006) $
+ */
 public class GCalEvent {
     
     public String parentCalendarTitle;
@@ -58,6 +65,11 @@ public class GCalEvent {
     public boolean eventIsToBeUpdated;  //tells if the event was updates
     public boolean autoSyncCantidate;   //tells if event is a cantidate to autosyncronize (an event is not candidate if the
                                         // last update date cannot be verified)
+    
+    public int isPlatformAllday = PLATFORM_ALLDAY_UNKNOWN; //tells if it was determined that the evet is an allday event
+    public static final int PLATFORM_ALLDAY_YES = 1;
+    public static final int PLATFORM_ALLDAY_NO = 2;
+    public static final int PLATFORM_ALLDAY_UNKNOWN = 3;
     
     static final int MAX_NOTE_LEN_DISPLAYED = 75;
     
@@ -120,15 +132,19 @@ public class GCalEvent {
         
         //exclude time for all-day events
         long offset = Store.getOptions().uploadTimeZoneOffset;
+        
+        
+        //just in case there has been an error with the time let's fix it here and avoid Google errors
+        if(this.startTime < this.endTime) this.startTime = this.endTime;
 
         String startDate = DateUtil.longToIsoDateTimeGMT(this.startTime+offset);
         String endDate = DateUtil.longToIsoDateTimeGMT(this.endTime+offset);
         if(this.isAllDay(offset)) {
             //In Goolge all day events do not have time
             startDate = DateUtil.longToIsoDateGMT(this.startTime);
-            endDate = DateUtil.longToIsoDateGMT(this.endTime == this.startTime ? (this.startTime + 24 * 60 * 60 * 1000) : this.endTime);
+            endDate = DateUtil.longToIsoDateGMT(this.endTime);
         }
-        
+
         //insert start and end dates of event
         stringBuffer.append("<gd:when startTime='" + startDate + "' endTime='" + endDate + "'>");
         
@@ -202,7 +218,15 @@ public class GCalEvent {
     }
     
     public boolean isAllDay(long timeOffset) {
-        return DateUtil.isAllDay(this.startTime + timeOffset, this.endTime + timeOffset);
+        //first let's see if we now for sure that the event is an allday event
+        if(this.isPlatformAllday == GCalEvent.PLATFORM_ALLDAY_YES) {
+            return true;
+        } else if(this.isPlatformAllday == GCalEvent.PLATFORM_ALLDAY_NO) {
+            return false;
+        } else {
+            //if we do not know for sure that an event is an allday event then let's check its dates
+            return DateUtil.isAllDay(this.startTime + timeOffset, this.endTime + timeOffset);
+        }
     }
     
     public String toString() {

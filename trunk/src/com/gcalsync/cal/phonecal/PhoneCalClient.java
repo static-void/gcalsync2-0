@@ -137,13 +137,33 @@ public class PhoneCalClient {
     
     
     /**
+     * Gets the value of a boolean field
+     * @param phoneEvent The phone event to use
+     * @param field The field to get the value for
+     * @return 0=false 1=true -1=fild unsuported
+     */
+    public int getBooleanField(Event phoneEvent, int field) {
+        if (phoneEventList.isSupportedField(field)) {
+            if(phoneEvent.countValues(field) > 0) {
+                return phoneEvent.getBoolean(field, 0) == true ? 1 : 0;
+            }
+            else {
+                return 0;
+            }
+        } else {
+            // TODO: log all unsupported fields, but only once
+            return -1;
+        }
+    }
+    
+    /**
      * Sets the value of a boolean field
      * @param phoneEvent The Event onto which set the value
      * @param field The field to set
      * @param value The boolean value to set
      * @return True if the field is supported, false otherwise
      */
-    public boolean setBoolean(Event phoneEvent, int field, boolean value) {
+    public boolean setBooleanField(Event phoneEvent, int field, boolean value) {
         if (phoneEventList.isSupportedField(field)) {
             if (phoneEvent.countValues(field) == 0) {
                 phoneEvent.addBoolean(field, Event.ATTR_NONE, value);
@@ -151,8 +171,7 @@ public class PhoneCalClient {
                 phoneEvent.setBoolean(field, 0, Event.ATTR_NONE, value);
             }
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }

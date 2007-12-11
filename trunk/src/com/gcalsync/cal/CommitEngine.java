@@ -34,8 +34,11 @@ import javax.microedition.lcdui.Form;
 import javax.microedition.pim.Event;
 
 /**
- *
+ * Class to commit events in both Google and the phone. Contains code that previously was in CommitComponent.
  * @author Agustin
+ * @author Yusuf Abdi
+ * @version $Rev: 1 $
+ * @date $Date: 2007-12-30 03:22:30 -0500 (Sat, 30 Dec 2007) $
  */
 public class CommitEngine {
     
