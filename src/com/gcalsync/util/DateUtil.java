@@ -308,8 +308,11 @@ public class DateUtil {
         String str = dateToIsoDateTime(date);
         return isoDateToLong(str);
     }
-    
     public static long isoDateToLong(String isoDate) {
+        return isoDateToLongExtraInfo(isoDate)[0];
+    }
+    
+    public static long[] isoDateToLongExtraInfo(String isoDate) {
         String year = isoDate.substring(0, 4);
         String month = isoDate.substring(5, 7);
         String day = isoDate.substring(8, 10);
@@ -370,27 +373,41 @@ public class DateUtil {
             timeZoneAdjustment = options.downloadTimeZoneOffset;
             
             if(timeZoneIncluded) {
-                timeZoneAdjustment -= (Integer.parseInt(timeZoneHour) * 60 + Integer.parseInt(timeZoneMin)) * 60 * 1000;
+                timeZoneAdjustment -= stringTimeZoneToLong(timeZoneHour, timeZoneMin);
             }
         }
         
         long timeMillis = calendar.getTime().getTime() + timeZoneAdjustment;
         
         //System.out.println("Time is: " + new Date(timeMillis));
-        return timeMillis;
+        return new long[] { timeMillis, timeIncluded ? 1 : 0};
     }
     
     private static long stringTimeZoneToLong(String timeZoneHour, String timeZoneMin) {
-        return  parseSignedInt(timeZoneHour) * 3600 * 1000 + Integer.parseInt(timeZoneMin) * 60 * 1000;
+        int timeZoneHourInt = parseSignedInt(timeZoneHour);
+        int timeZoneMinInt = Integer.parseInt(timeZoneMin);
+        
+        if(isNegativeInt(timeZoneHour)) {
+            timeZoneMinInt = -timeZoneMinInt;
+        }
+        
+        return  timeZoneHourInt * 3600 * 1000 + timeZoneMinInt * 60 * 1000;
     }
     
-    private static int parseSignedInt(String value) {
+    public static int parseSignedInt(String value) {
         int sign = 1;
-        if (value.startsWith("-")) {
+        if(value.startsWith("-")) {
             sign = -1;
+            value = value.substring(1);
+        } else if(value.startsWith("+")) {
+            value = value.substring(1);
         }
-        int absoluteValue = Integer.parseInt(value.substring(1));
+        int absoluteValue = Integer.parseInt(value);
         return sign * absoluteValue;
+    }
+    
+    private static boolean isNegativeInt(String value) {
+        return value.startsWith("-");
     }
     
     public static String[] longIntervalToIsoDateInterval(long[] longInterval) {

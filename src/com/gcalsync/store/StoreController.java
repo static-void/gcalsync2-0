@@ -136,29 +136,29 @@ public class StoreController {
         return result;
     }
 
-        public void deleteRecords(byte recordType)
-        {
-                try
-                {
-                        //get all records of the specified type
-                        Storable[] st = readAll(recordType);
+	public void deleteRecords(byte recordType)
+	{
+		try
+		{
+			//get all records of the specified type
+			Storable[] st = readAll(recordType);
 
-                        //open the record store to begin deleting records,
-                        //delete the records, and then close the store
-                        openRecordStore();
+			//open the record store to begin deleting records,
+			//delete the records, and then close the store
+			openRecordStore();
 
-                        for (int i=0; i<st.length; i++)
-                                recordStore.deleteRecord(st[i].recordId);
+			for (int i=0; i<st.length; i++)
+				recordStore.deleteRecord(st[i].recordId);
 
-                        closeRecordStore();
-                }
-                catch (Exception e)
-                {
+			closeRecordStore();
+		}
+		catch (Exception e)
+		{
 //#ifdef DEBUG_ERR
 //#                         System.out.println("deleteRec(): " + e);
 //#endif
-                }
-        }
+		}
+	}
 
     public void write(Storable object) {
         openRecordStore();

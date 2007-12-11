@@ -190,7 +190,15 @@ public class GCalParser {
                 } else if ("when".equals(name) && gCalEvent.recur == null) {
                     long[] when = parseWhen(nextEvent);
                     gCalEvent.startTime = when[0];
-                    gCalEvent.endTime = when[1];
+                    gCalEvent.endTime = when[2];
+                    
+                    //save if the event is an allday event
+                    if(when[1] == 0 && when[3] == 0) {
+                        gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_YES;
+                    }
+                    else {
+                        gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_NO;
+                    }
                 } else if ("eventStatus".equals(name)) {
                     gCalEvent.cancelled = isCancelled(parseValue(nextEvent));
                 } else if ("reminder".equals(name)) {
@@ -204,9 +212,9 @@ public class GCalParser {
                     gCalEvent.uid = nextEvent.getAttribute("value").getValue();
                     
                     //google UID ends with @google.com, so lets remove that part and save 11bytes of memory
-                  //  if(gCalEvent.uid.endsWith("@google.com")) {
-                  //      gCalEvent.uid = gCalEvent.uid.substring(0, gCalEvent.uid.length() - 11);
-                  //  }
+                    /*if(gCalEvent.uid.endsWith("@google.com")) {
+                        gCalEvent.uid = gCalEvent.uid.substring(0, gCalEvent.uid.length() - 11);
+                    }*/
                 } else if("link".equals(name) &&  "edit".equals(nextEvent.getAttribute("rel").getValue())) {
                     gCalEvent.editLink = nextEvent.getAttribute("href").getValue();
                 }
@@ -287,19 +295,23 @@ public class GCalParser {
     }
     
     private long[] parseWhen(ParseEvent event) {
-        long[] result = new long[2];
+        long[] result = new long[4];
         
         Attribute startTime = event.getAttribute("startTime");
         if ((startTime != null) && (startTime.getValue() != null)) {
             //System.out.println("Start time: " + startTime.getValue());
-            result[0] = DateUtil.isoDateToLong(startTime.getValue());
+            long[] vals = DateUtil.isoDateToLongExtraInfo(startTime.getValue());
+            result[0] = vals[0];
+            result[1] = vals[1];
             
         }
         
         Attribute endTime = event.getAttribute("endTime");
         if ((endTime != null) && (endTime.getValue() != null)) {
             //System.out.println("End time: " + endTime.getValue());
-            result[1] = DateUtil.isoDateToLong(endTime.getValue());
+            long[] vals = DateUtil.isoDateToLongExtraInfo(endTime.getValue());
+            result[2] = vals[0];
+            result[3] = vals[1];
         }
         
         return result;

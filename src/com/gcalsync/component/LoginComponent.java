@@ -271,7 +271,7 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
      */
     void signIn() {
         Alert a;
-        //throw new RuntimeException("aca algo anda mal :P");
+
         if (txtUsername.getString().trim().length() > 0
                 && txtPassword.getString().length() > 0) {
             //save credentials and then start login on another
