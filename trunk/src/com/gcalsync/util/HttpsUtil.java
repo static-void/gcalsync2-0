@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.gcalsync.cal.gcal.NoSuchCalendarException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
@@ -74,7 +75,7 @@ public class HttpsUtil {
 				catch (Exception e)
 				{
 //#ifdef DEBUG_ERR
-					System.err.println("sendRequest() err: " + e);
+//# 					System.err.println("sendRequest() err: " + e);
 //#endif
 					return null;
 				}
@@ -90,7 +91,7 @@ public class HttpsUtil {
 				}
 				catch (Exception e) {
 //#ifdef DEBUG_ERR
-					System.err.println("sendRequest() err: " + e);
+//# 					System.err.println("sendRequest() err: " + e);
 //#endif
 					return null;
 				}
@@ -99,18 +100,24 @@ public class HttpsUtil {
                     connection.setRequestProperty("Authorization", authorization);
                 }
                 if (postData != null) {
+                    byte[] data = null;
+                    try {
+                        data = postData.getBytes("UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        data = postData.getBytes();
+                    }
                     //connection.setRequestMethod(HttpsConnection.POST);
                     connection.setRequestProperty("Content-Type", contentType);
 
-                    connection.setRequestProperty("Content-Length", Integer.toString(postData.length()));
+                    connection.setRequestProperty("Content-Length", Integer.toString(data.length));
                     out = connection.openOutputStream();
-                    out.write(postData.getBytes());
+                    out.write(data);
 
                     try {
                         out.close();
                     } catch (IOException e) {
 //#ifdef DEBUG_ERR
-                        log("failed to close out for " + url + " due to " + e);
+//#                         log("failed to close out for " + url + " due to " + e);
 //#endif
                         if (e instanceof CertificateException) {
                             CertificateException ce = (CertificateException) e;
@@ -138,12 +145,12 @@ public class HttpsUtil {
                         url = DEFAULT_REDIRECT_URL;
                     }
 //#ifdef DEBUG_INFO
-                    log("Redirecting to " + url);
+//#                     log("Redirecting to " + url);
 //#endif
                 } else {
 //#ifdef DEBUG_INFO
-                    // no redirect
-                    log("No redirect");
+//#                     // no redirect
+//#                     log("No redirect");
 //#endif
                     break;
                 }
@@ -212,8 +219,8 @@ public class HttpsUtil {
         return responseData;
     }
 //#if DEBUG || DEBUG_INFO || DEBUG_WARN || DEBUG_ERR
-    private static void log(String message) {
-        System.out.println(message);
-    }
+//#     private static void log(String message) {
+//#         System.out.println(message);
+//#     }
 //#endif
 }

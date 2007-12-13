@@ -51,7 +51,7 @@ public class Merger {
     private GCalClient gCalClient;
     private Options options;
     
-    private static final int BB_ALLDAY_FIELD = 20000928; //net.rim.blackberry.api.pim.BlackBerryEvent.ALLDAY
+    private static final int BB_ALLDAY_FIELD = 20000928; //net.rim.blackberry.api.pdap.BlackBerryEvent.ALLDAY
     
     public Merger(PhoneCalClient phoneCalClient, GCalClient gCalClient) {
         this.phoneCalClient = phoneCalClient;

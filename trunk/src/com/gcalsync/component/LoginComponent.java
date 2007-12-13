@@ -109,7 +109,7 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
         form.addCommand(CMD_ABOUT);
         form.addCommand(CMD_OPTIONS);
         form.addCommand(CMD_EXIT);
-        //form.addCommand(CMD_TEST);
+       // form.addCommand(CMD_TEST);
         form.setCommandListener(this);
         form.setItemStateListener(this);
     }
