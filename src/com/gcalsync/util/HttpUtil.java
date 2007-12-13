@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.gcalsync.cal.gcal.NoSuchCalendarException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
@@ -79,10 +80,16 @@ public class HttpUtil {
                     connection.setRequestProperty("Authorization", authorization);
                 }
                 if (postData != null) {
+                    byte[] data = null;
+                    try {
+                        data = postData.getBytes("UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        data = postData.getBytes();
+                    }
                     connection.setRequestProperty("Content-Type", contentType);
-                    connection.setRequestProperty("Content-Length", Integer.toString(postData.length()));
+                    connection.setRequestProperty("Content-Length", Integer.toString(data.length));
                     out = connection.openOutputStream();
-                    out.write(postData.getBytes());
+                    out.write(data);
 
                     try {
                         out.close();

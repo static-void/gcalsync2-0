@@ -82,7 +82,7 @@ public class TestComponent extends MVCComponent  {
         this.form.setCommandListener(this);
         //com.nokia.microedition.pim.EventImpl ei;
         
-        addInfo("Test screen  ", "v6");
+        addInfo("Test screen  ", "v7");
     }
     
     /**
@@ -170,11 +170,12 @@ public class TestComponent extends MVCComponent  {
         try {
             this.form.deleteAll();
             
-            int allday = 20000928;//net.rim.blackberry.api.pim.BlackBerryEvent.ALLDAY;
+            int allday = 20000928;//net.rim.blackberry.api.pdap.BlackBerryEvent.ALLDAY;
             addInfo("ALLDAY: ", Integer.toString(allday) + " " + (allday == 20000928 ? "OK" : "NOT 20000928"));
-            
+          
             PIM pim = PIM.getInstance();
             EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
+            addInfo("EventList: ", phoneEventList.getClass().toString());
             
             addInfo("ALLDAY supported?: ", "" + phoneEventList.isSupportedField(allday));
             
@@ -191,6 +192,14 @@ public class TestComponent extends MVCComponent  {
             System.out.println("4: " + DateUtil.parseSignedInt("+1"));
             System.out.println("4: " + DateUtil.parseSignedInt("8"));
             
+            //PIM pim = PIM.getInstance();
+            String[] ss = pim.listPIMLists(PIM.EVENT_LIST);
+            String all = "";
+            for(int i = 0; i < ss.length; i++) {
+                all += (all.length() == 0 ? "" : ", ") + ss[i];
+            }
+            addInfo("\nlistPIMLists", all);
+            
         }catch(Exception e) {
             ErrorHandler.showError(e);
         }
@@ -200,10 +209,19 @@ public class TestComponent extends MVCComponent  {
         try {
             this.form.deleteAll();
             
+            PIM pim = PIM.getInstance();
+            EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE, "cat_test");
+            
+            
+            
             GCalEvent gCalEvent = new GCalEvent();
-            gCalEvent.title = "j2me event(nokia)";
+            /*gCalEvent.title = "j2me event(nokia)";
             gCalEvent.startTime = DateUtil.dateToLong("20071214");
-            gCalEvent.endTime = DateUtil.dateToLong("20071215");
+            gCalEvent.endTime = DateUtil.dateToLong("20071215");*/
+            
+            gCalEvent.title = "cat_event";
+            gCalEvent.startTime = DateUtil.isoDateToLong("2007-12-14T16:00:00");
+            gCalEvent.endTime = DateUtil.isoDateToLong("2007-12-14T17:00:00");
             
             PhoneCalClient phoneCalClient = new PhoneCalClient();
             
@@ -221,6 +239,8 @@ public class TestComponent extends MVCComponent  {
                     addInfo("", "\nsupported: " + i);
                 }
             }*/
+            
+            //phoneEvent.addToCategory("cat_test");
             
             phoneCalClient.insertEvent(phoneEvent, "1234567890");
             phoneCalClient.close();
