@@ -59,12 +59,15 @@ public class ErrorHandler {
         //create the alert
         final Alert alert = getErrorAlert(message, t);
         
+        final Displayable current = display.getCurrent();
+        
         //now add a command listener that will unlock the thread
         //theat I will lock right after showing the alert
         alert.setCommandListener(new CommandListener() {
             public void commandAction(Command c, Displayable d) {
                 synchronized(alert) {
                     alert.notify();
+                    display.setCurrent(current);
                 }
             }
         });
