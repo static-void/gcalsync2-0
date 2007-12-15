@@ -27,6 +27,7 @@ import java.io.UnsupportedEncodingException;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
+ * @author Gennadi Kudrjavtsev, ydanneg@gmail.com
  * @author $Author$
  * @version $Rev: 7 $
  * @date $Date$
@@ -34,17 +35,17 @@ import java.io.UnsupportedEncodingException;
 public class HttpsUtil {
 
     private static final String DEFAULT_REDIRECT_URL = "???";
-	static int lastResponseCode = 0;
-	static String lastResponseMsg = null;
+        static int lastResponseCode = 0;
+        static String lastResponseMsg = null;
 
-	public static int getLastResponseCode()
-	{
-		return lastResponseCode;
-	}
-	public static String getLastResponseMsg()
-	{
-		return lastResponseMsg;
-	}
+        public static int getLastResponseCode()
+        {
+                return lastResponseCode;
+        }
+        public static String getLastResponseMsg()
+        {
+                return lastResponseMsg;
+        }
 
     public static byte[] sendRequest(String url, String method, String postData, String authorization) {
         return HttpsUtil.sendRequest(url, method, postData, authorization, "application/x-www-form-urlencoded");
@@ -59,42 +60,42 @@ public class HttpsUtil {
         OutputStream out = null;
         DataInputStream in = null;
         byte[] responseData = null;
-		int status = -1;
+                int status = -1;
 
         try {
 
             // Open the connection and check for re-directs
             while (true) {
-				try
-				{
-					connection = (HttpsConnection) Connector.open(url);
-					if (connection == null) {
-						throw new IllegalStateException("null connection when opening " + url);
-					}
-				}
-				catch (Exception e)
-				{
+                                try
+                                {
+                                        connection = (HttpsConnection) Connector.open(url);
+                                        if (connection == null) {
+                                                throw new IllegalStateException("null connection when opening " + url);
+                                        }
+                                }
+                                catch (Exception e)
+                                {
 //#ifdef DEBUG_ERR
-//# 					System.err.println("sendRequest() err: " + e);
+//#                                     System.err.println("sendRequest() err: " + e);
 //#endif
-					return null;
-				}
+                                        return null;
+                                }
 
-				try
-				{
-				if (HttpsConnection.GET.equals(method) || HttpsConnection.POST.equals(method)) {
+                                try
+                                {
+                                if (HttpsConnection.GET.equals(method) || HttpsConnection.POST.equals(method)) {
                     connection.setRequestMethod(method);
                 } else {
                     connection.setRequestMethod(HttpsConnection.POST);
                     connection.setRequestProperty("X-HTTP-Method-Override", method);
                 }
-				}
-				catch (Exception e) {
+                                }
+                                catch (Exception e) {
 //#ifdef DEBUG_ERR
-//# 					System.err.println("sendRequest() err: " + e);
+//#                                     System.err.println("sendRequest() err: " + e);
 //#endif
-					return null;
-				}
+                                        return null;
+                                }
 
                 if (authorization != null) {
                     connection.setRequestProperty("Authorization", authorization);
@@ -131,8 +132,8 @@ public class HttpsUtil {
                 // Get the status code, causing the connection to be made
                 //log("Getting response code...");
                 status = connection.getResponseCode();
-				lastResponseCode = status;
-				lastResponseMsg = connection.getResponseMessage();
+                                lastResponseCode = status;
+                                lastResponseMsg = connection.getResponseMessage();
 
                 if (status == HttpsConnection.HTTP_TEMP_REDIRECT ||
                         status == HttpsConnection.HTTP_MOVED_TEMP ||
@@ -211,9 +212,9 @@ public class HttpsUtil {
             if (responseString.indexOf("Cannot access the calendar you requested") >= 0) {
                 throw new NoSuchCalendarException();
             }
-			else {
-				lastResponseMsg += ": " + responseString;
-			}
+                        else {
+                                lastResponseMsg += ": " + responseString;
+                        }
         }
 
         return responseData;

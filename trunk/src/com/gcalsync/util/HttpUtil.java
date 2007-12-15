@@ -26,23 +26,24 @@ import java.io.UnsupportedEncodingException;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
+ * @author Gennadi Kudrjavtsev, ydanneg@gmail.com
  * @author $Author$
  * @version $Rev: 7 $
  * @date $Date$
  */
 public class HttpUtil {
 
-	static int lastResponseCode = 0;
-	static String lastResponseMsg = null;
+        static int lastResponseCode = 0;
+        static String lastResponseMsg = null;
 
-	public static int getLastResponseCode()
-	{
-		return lastResponseCode;
-	}
-	public static String getLastResponseMsg()
-	{
-		return lastResponseMsg;
-	}
+        public static int getLastResponseCode()
+        {
+                return lastResponseCode;
+        }
+        public static String getLastResponseMsg()
+        {
+                return lastResponseMsg;
+        }
 
     public static byte[] sendRequest(String url, String method, String postData, String authorization) {
         return sendRequest(url, method, postData, authorization, "application/x-www-form-urlencoded");
@@ -104,8 +105,8 @@ public class HttpUtil {
 
                 // Get the status code, causing the connection to be made
                 status = connection.getResponseCode();
-				lastResponseCode = status;
-				lastResponseMsg = connection.getResponseMessage();
+                                lastResponseCode = status;
+                                lastResponseMsg = connection.getResponseMessage();
 //#ifdef DEBUG_INFO
 //#                 System.out.println("HTTP status code: " + status);
 //#endif
@@ -182,9 +183,9 @@ public class HttpUtil {
             if (responseString.indexOf("Cannot access the calendar you requested") >= 0) {
                 throw new NoSuchCalendarException();
             }
-			else {
-				lastResponseMsg += ": " + responseString;
-			}
+                        else {
+                                lastResponseMsg += ": " + responseString;
+                        }
         }
 
         return responseData;
