@@ -1,0 +1,215 @@
+package com.gcalsync;
+
+import java.util.Vector;
+import javax.microedition.lcdui.*;
+import com.gcalsync.gcal.GCalEvent;
+
+public class EventViewer extends MVCComponent 
+{
+    Form form;
+    Command saveCommand;
+	Command cancelCommand;
+	Vector choiceVector;
+	ChoiceGroup[] eventChoices;
+	GCalEvent[] gCalEvents;
+
+	public Displayable getDisplayable() {return this.form;}
+
+    protected void initModel() {}
+
+	protected void updateView() {}
+
+	protected void createView() 
+	{
+		//add commit command only if choices exist
+		if (this.choiceVector.size() > 0)
+		{
+
+			this.saveCommand = new Command("Commit", Command.OK, 1);
+			this.form.addCommand(saveCommand);
+		}
+
+		//add cancel command
+        this.cancelCommand = new Command("Cancel", Command.CANCEL, 2);
+        this.form.addCommand(cancelCommand);
+        this.form.setCommandListener(this);
+    }
+
+	/**
+    * Processes button presses
+    *
+    * @param command command with which the button press is
+    *                associated
+    * @param displayable the form from which <code>command</code>
+    *                    originates
+	*/
+    public void commandAction(Command command, Displayable displayable) {}
+
+	/**
+    * Constructor that sets title of form to empty string
+    * 
+	*/
+	public EventViewer()
+	{
+		this("");
+	}
+
+	/**
+    * Constructor that sets title of form to specified string
+    * 
+    * @param title desired title of form
+	*/
+	public EventViewer(String title)
+	{
+        this.form = new Form(title);
+		choiceVector = new Vector();
+	}
+
+	/**
+    * Sets list of events to be displayed on form
+    *
+    * @param events GCal events to be displayed
+	*/
+	public void setEvents(GCalEvent[] events)
+	{
+		setEvents(events, null, 0);
+	}
+
+	/**
+    * Sets list of events to be displayed on form
+    * 
+    * @param events GCal events to be displayed
+    * @param title desired title of events
+	*/
+	public void setEvents(GCalEvent[] events, String title)
+	{
+		setEvents(events, title, 0);
+	}
+
+	/**
+    * Sets list of events to be displayed on form
+    * 
+    * @param events GCal events to be displayed
+    * @param title desired title of events
+    * @param timeOffset time offset for events in ms since 01/01/70
+	*/
+	public void setEvents(GCalEvent[] events, String title, long timeOffset)
+	{
+		if (events != null)
+		{
+			this.gCalEvents = new GCalEvent[events.length];
+			System.arraycopy(events, 0, this.gCalEvents, 0, events.length);
+			addEvents(this.gCalEvents, title, timeOffset);
+		}
+	}
+
+	/**
+    * Adds events to current list and displays them on the form
+    * 
+    * @param events GCal events to be displayed
+	*/
+	public void addEvents(GCalEvent[] events)
+	{
+		addEvents(events, null, 0);
+	}
+
+	/**
+    * Adds events to current list and displays them on the form
+    * 
+    * @param events GCal events to be displayed
+    * @param title desired title of events
+	*/
+	public void addEvents(GCalEvent[] events, String title)
+	{
+		addEvents(events, title, 0);
+	}
+
+	/**
+    * Adds events to current list and displays them on the form
+    * 
+    * @param events GCal events to be displayed
+    * @param title desired title of events
+    * @param timeOffset time offset for events in ms since 01/01/70
+	*/
+	public void addEvents(GCalEvent[] events, String title, long timeOffset)
+	{
+		ChoiceGroup choice;
+
+        //add group
+		this.form.append(new ChoiceGroup(title, ChoiceGroup.MULTIPLE));
+
+		if (events.length == 0)
+		{
+			this.form.append(new StringItem("", "*None*"));
+		}
+		else
+		{
+			for (int i = 0; i < events.length; i++)
+			{
+				choice = new ChoiceGroup("", ChoiceGroup.MULTIPLE);
+				choice.append(events[i].toString(timeOffset), null);
+				this.form.append(choice);
+			}
+		}
+	}
+
+	/**
+    * Gets selected events from the given event list
+    * 
+    * @param choices event choice groups
+    * @param events list of events to which <code>choices</code>
+    *               correspond
+	*/
+	public GCalEvent[] getSelectedEvents(ChoiceGroup[] choices, GCalEvent[] events)
+	{
+		Vector eventVect;
+		GCalEvent[] rval = null;
+
+		if (choices != null && choices.length > 0 && events != null)
+		{
+			eventVect = new Vector(choices.length);
+			
+			//add selected events to the event vector
+			for (int i=0; i<choices.length; i++)
+			{
+				if (choices[i].isSelected(0)) 
+					eventVect.addElement(events[i]);
+			}
+
+			if (eventVect.size() > 0)
+			{
+				rval = new GCalEvent[eventVect.size()];
+				eventVect.copyInto(rval);
+			}
+		}
+
+		return rval;
+	}
+
+	/**
+    * Determines if the specified ChoicGroup array contains any
+    * elements that are selected
+    *
+    * @param choices ChoiceGroups to search
+	*/
+	protected boolean isSelected(ChoiceGroup[] choices)
+	{
+		boolean rval = false;
+
+		for (int i=0; i<choices.length; i++)
+		{
+			if (choices[i].isSelected(0))
+			{
+				rval = true;
+				break;
+			}
+		}
+
+		return rval;
+	}
+}
+
+
+
+
+

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<project name="project" default="build">
+
+    <property file="build.properties"/>
+    <property name="bb.buildjars.home" value="${rim.home}/bin"/>
+    <property name="base.dir" value=".."/>
+    <property name="build.dir" value="build"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="res.dir" value="${base.dir}/res"/>
+    <property name="src.dir" value="${base.dir}/src"/>
+    
+    <!-- Sets DSTAMP, TSTAMP, and TODAY properties -->
+    <tstamp>
+        <format property="DSTAMP" pattern="MMMM d, yyyy" locale="en,US"/>
+    </tstamp>
+
+    <!-- Define path reference for external libraries -->
+    <path id="libpath">
+        <fileset dir="${base.dir}/lib" includes="*.jar,*.zip" />
+    </path>
+
+    <!-- Define Antenna build task -->
+    <taskdef resource="antenna.properties">
+        <classpath>
+            <fileset dir="ant" includes="ant*.jar" />
+        </classpath>
+    </taskdef>
+
+    <!-- Compile target -->
+    <target name="compile"
+            description="Compiles project">
+
+        <!-- Create build directory if it doesn't exist already -->
+        <mkdir dir="${build.dir}/classes"/>
+
+        <!-- Preprocess all files --> 
+        <wtkpreprocess srcdir="${src.dir}"
+                       destdir="${build.dir}/preprocessed"
+                       filter="true"
+                       symbols="" />
+
+        <!-- Compile the preprocessed files -->
+        <wtkbuild srcdir="${build.dir}/preprocessed"
+                  destdir="${build.dir}/classes"
+                  preverify="false"
+                  fork="true">
+            <classpath refid="libpath"/>
+        </wtkbuild>
+
+    </target>
+
+    <!-- Compile and then package -->
+    <target name="build" 
+            description="Compiles and packages project"
+            depends="compile">
+
+        <!-- Create distribution directory if it doesn't exist already -->
+        <mkdir dir="${dist.dir}"/>
+
+        <!-- Create a JAD file -->
+        <wtkjad jadfile="${dist.dir}/${midlet.filename}.jad"
+                jarfile="${dist.dir}/${midlet.filename}.jar"
+                name="${midlet.title}"
+                vendor="${midlet.vendor}"
+                version="${midlet.version}"
+                manifest="${dist.dir}/MANIFEST.MF">
+
+            <midlet name="${midlet.name}" 
+                    class="${midlet.class}"
+                    icon="${resource.dir}/${midlet.icon}"/>
+
+            <attribute name="MIDlet-1" value="${midlet.title}, ${midlet.icon}, ${midlet.class}"/>
+            <attribute name="MIDlet-Description" value="${midlet.description}"/>
+            <attribute name="MIDlet-Icon" value="${midlet.icon}"/>
+            <attribute name="MIDlet-Info-URL" value="${midlet.url}"/>
+            <attribute name="MIDlet-Permissions" value="${midlet.permissions}"/>
+
+            <attribute name="Build-Date" value="${DSTAMP}"/>
+        </wtkjad>
+
+        <!-- Package our newly compiled classes -->
+        <wtkpackage jarfile="${dist.dir}/${midlet.filename}.jar"
+                    jadfile="${dist.dir}/${midlet.filename}.jad"
+                    obfuscate="true"
+                    preverify="true"
+                    libclasspathref="libpath"
+                    manifest="${dist.dir}/MANIFEST.MF">
+            <fileset dir="${build.dir}/classes"/>
+            <fileset dir="${res.dir}"/>
+        </wtkpackage>
+
+        <!-- Copy JAD file to bin folder in order for WTK to detect project properly.
+             The JAD file name must match the project folder name under WTK. -->
+        <copy file="${dist.dir}/${midlet.filename}.jad" tofile="${midlet.name}.jad"/>
+    </target>
+
+    <!-- Build COD -->
+    <target name="cod" 
+            description="Builds RIM COD" 
+            depends="build">
+
+        <antcall target="compilecod"/>
+        
+    </target> 
+
+    <!-- Compile COD -->
+    <target name="compilecod" 
+            description="Compiles RIM COD">
+
+        <!-- Copy dummy ALX for wtkrapc or else it will complain when it tries to 
+        copy the ALX to the distribution directory -->
+        <copy file="template.alx" tofile="${midlet.filename}.alx"/>
+
+        <wtkrapc jadfile="${dist.dir}/${midlet.filename}.jad" 
+                 source="${dist.dir}/${midlet.filename}.jar"
+                 codename="${midlet.filename}" 
+                 import="${rim.home}/lib/net_rim_api.jar" 
+                 destdir="${dist.dir}/cod"
+                 quiet="true" 
+                 midlet="true"/>
+
+        <!-- Delete temp rapc files -->
+        <antcall target="cleantemps"/>
+
+        <!-- Copy the COD file back to the distribution folder and then delete the COD folder -->
+        <copy file="${dist.dir}/cod/${midlet.filename}.cod" todir="${dist.dir}"/>
+        <delete dir="${dist.dir}/cod" failonerror="false"/>
+
+        <echo message="Update MIDlet-Jar-Size in ${midlet.filename}.jad!"/>
+    </target>
+
+    <!-- Run MIDlet -->
+    <target name="run" 
+            description="Starts the MIDlet suite in the emulator"
+            depends="build">
+
+        <wtkrun jadfile="${dist.dir}/${midlet.filename}.jad"
+                device="DefaultColorPhone"
+                wait="true"/>
+    </target>
+
+    <!-- Delete output directories and temporary files -->
+    <target name="clean">
+        <delete dir="${dist.dir}" failonerror="false"/>
+        <delete dir="${build.dir}" failonerror="false"/>
+        <delete file="${midlet.name}.jad"/>
+        <antcall target="cleantemps"/>
+    </target>
+
+    <!-- Delete temporary files -->
+    <target name="cleantemps">
+        <delete file="${midlet.filename}.jar"/>
+        <delete file="${midlet.filename}.cso"/>
+        <delete file="${midlet.filename}.debug"/>
+        <delete file="${midlet.filename}.cod"/>
+        <delete file="${midlet.filename}.alx"/>
+    </target>
+
+</project>

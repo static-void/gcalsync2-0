@@ -1,0 +1,167 @@
+package com.gcalsync;
+
+import javax.microedition.io.Connector;
+import javax.microedition.io.HttpsConnection;
+import javax.microedition.lcdui.Command;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.Form;
+import javax.microedition.pim.PIM;
+import javax.microedition.pki.CertificateException;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+/**
+ * @author Thomas Oldervoll, thomas@zenior.no
+ * @author $Author$
+ * @version $Rev: 1 $
+ * @date $Date$
+ */
+public class TestComponent extends MVCComponent implements Runnable, StatusLogger {
+
+    private static final String LOGIN_URL = "https://www.google.com/accounts/ClientLogin";
+    private boolean success = true;
+    private Form form;
+
+    public Displayable getDisplayable() {
+        return form;
+    }
+
+    protected void initModel() throws Exception {
+    }
+
+    protected void createView() throws Exception {
+        form = new Form("Testing calendar and network");
+    }
+
+    protected void updateView() throws Exception {
+    }
+
+    public void commandAction(Command command, Displayable screen) {
+        // TODO: Allow cancel
+        if (command.getCommandType() == Command.EXIT) {
+            Components.mainMenu.showScreen();
+        }
+    }
+
+    public void handle() {
+        showScreen();
+        new Thread(this).start();
+    }
+
+    public void run() {
+        try {
+            update("Testing phone calendar:");
+            update(testPim());
+
+            update("Testing HTTP:");
+            update(testHttp());
+
+            update("Testing HTTPS (1/3):");
+            update(testHttps("https://www.altinn.no/cms/1044/altinn/"));
+            update("Testing HTTPS (2/3):");
+            update(testHttps("https://nettbank.edb.com"));
+            update("Testing HTTPS (3/3):");
+            update(testHttps(LOGIN_URL));
+
+            if (success) {
+                update("All tests passed.\n");
+            } else {
+                update("Some tests failed.\n");
+            }
+
+            form.addCommand(new Command("OK", Command.EXIT, 2));
+        } catch (Exception e) {
+            ErrorHandler.showError("test run failed", e);
+        }
+    }
+
+    private String testPim() {
+        try {
+            PIM pim = PIM.getInstance();
+            pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
+            return "OK";
+        } catch (Exception e) {
+            success = false;
+            return "Failed du to " + e;
+        }
+    }
+
+    private String testHttp() {
+        try {
+            byte[] result = HttpUtil.sendRequest("http://www.google.com", HttpsConnection.GET, null, null);
+            if ((result != null) && (result.length > 0)) {
+                return "OK";
+            } else {
+                success = false;
+                return "Failed, no reply";
+            }
+        } catch (Exception e) {
+            success = false;
+            return "Failed du to " + e;
+        }
+    }
+
+    private String testHttps(String url) {
+        HttpsConnection connection = null;
+        OutputStream out = null;
+        DataInputStream in = null;
+        byte[] responseData = null;
+        String status = "";
+        try {
+            connection = (HttpsConnection) Connector.open(url);
+            if (connection == null) {
+                return "Failed, null connection";
+            }
+            int responseCode = connection.getResponseCode();
+            int length = (int) connection.getLength();
+            status = "status=" + responseCode + ", " + length + " bytes";
+            if (length > 0) {
+                responseData = new byte[length];
+                in = new DataInputStream(connection.openInputStream());
+                in.readFully(responseData);
+            }
+            return "OK";
+        } catch (CertificateException ce) {
+            success = false;
+            return "Failed due to CertificateException with reason=" + ce.getReason()
+                    + "Certificate: " + ce.getCertificate() + "\n" + status;
+        }
+        catch (Exception e) {
+            success = false;
+            return "Failed due to " + e + "\n" + status;
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void update(String message) {
+        form.append(message + "\n");
+    }
+
+    public void updateMinor(String message) {
+        form.delete(form.size() - 1);
+        form.append(message + "\n");
+    }
+
+}
