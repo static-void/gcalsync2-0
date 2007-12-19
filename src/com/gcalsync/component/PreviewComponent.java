@@ -19,6 +19,8 @@ import java.util.Vector;
 import javax.microedition.lcdui.*;
 import com.gcalsync.cal.gcal.GCalEvent;
 import com.gcalsync.cal.gcal.GCalClient;
+import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 
 public class PreviewComponent extends MVCComponent 
@@ -64,12 +66,13 @@ public class PreviewComponent extends MVCComponent
 	/**
     * Creates the view
 	*/
-    protected void createView() 
+    protected void createView() throws Exception
 	{
-        this.form = new Form("Preview");
+            try {
+                this.form = new Form("Preview");
 
-		//add upload choices to form
-        if (uploads != null) addEvents(true);
+                //add upload choices to form
+                if (uploads != null) addEvents(true);
 
 		//add download choices to form
 		if (downloads != null) addEvents(false);
@@ -89,8 +92,11 @@ public class PreviewComponent extends MVCComponent
 		if (this.uploads != null && this.uploads.length > 0)
 			this.form.addCommand(CMD_SELECT_UL);
 
-        this.form.addCommand(CMD_CANCEL);
-        this.form.setCommandListener(this);
+            this.form.addCommand(CMD_CANCEL);
+            this.form.setCommandListener(this);
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "createView", e);
+        }
     }
 
 	/**
@@ -102,6 +108,7 @@ public class PreviewComponent extends MVCComponent
 	*/
     public void commandAction(Command c, Displayable displayable) 
 	{
+            try {
 		CommitComponent cmt;
 		Alert alert;
 
@@ -144,6 +151,9 @@ public class PreviewComponent extends MVCComponent
 		{
 			Components.login.showScreen();
 		}
+            }catch(Throwable t) {
+                ErrorHandler.showError(t);
+            }
     }
 
 	/**
@@ -152,8 +162,9 @@ public class PreviewComponent extends MVCComponent
     * @param uploads events to be uploaded
     * @param downloads events to be downloaded
 	*/
-	public void setEvents(GCalEvent[] uploads, GCalEvent[] downloads)
+	public void setEvents(GCalEvent[] uploads, GCalEvent[] downloads) throws Exception
 	{
+            try {
 		if (uploads != null)
 		{
 			this.uploads = new GCalEvent[uploads.length];
@@ -165,6 +176,9 @@ public class PreviewComponent extends MVCComponent
 			this.downloads = new GCalEvent[downloads.length];
 			System.arraycopy(downloads, 0, this.downloads, 0, downloads.length);
 		}
+            }catch(Exception e) {
+                throw new GCalException("PreviewComponent", "setEvents", e);
+            }
 	}
 
 	/*
@@ -172,8 +186,9 @@ public class PreviewComponent extends MVCComponent
     *
     * @param upload if true, adds the upload events; otherwise, adds the download events
 	*/
-	void addEvents(boolean upload)
+	void addEvents(boolean upload) throws Exception
 	{
+            try {
 		ChoiceGroup[] choices;
 		GCalEvent[] events;
 		StringItem title;
@@ -211,10 +226,15 @@ public class PreviewComponent extends MVCComponent
 			for (int i = 0; i < events.length; i++)
 			{
 				choices[i] = new ChoiceGroup(null, ChoiceGroup.MULTIPLE, new String[]{events[i].toString(timeOffset)}, null);
-				this.form.append(choices[i]);
+                                choices[i].setFitPolicy(ChoiceGroup.TEXT_WRAP_ON);
+                                choices[i].setFont(0, Font.getFont(Font.FACE_PROPORTIONAL, Font.STYLE_PLAIN, Font.SIZE_SMALL));
+                      		this.form.append(choices[i]);
 				this.form.append(new Spacer(getDisplayable().getWidth(), 8));
 			}
 		}
+            }catch(Exception e) {
+                throw new GCalException(this.getClass(), "addEvents", e);
+            }
 	}
 
 	/**

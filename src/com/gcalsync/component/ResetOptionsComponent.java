@@ -15,6 +15,7 @@
 */
 package com.gcalsync.component;
 
+import com.gcalsync.log.ErrorHandler;
 import javax.microedition.lcdui.*;
 import com.gcalsync.store.Store;
 
@@ -68,12 +69,16 @@ public class ResetOptionsComponent extends MVCComponent implements Runnable
 	*/
 	public void commandAction(Command c, Displayable d)
 	{
+            try {
 		//start deletion thread
 		if (c == CMD_OK)
 			new Thread(this).start();
 
 		//return to Options screen
 		Components.options.showScreen();
+            }catch(Throwable t) {
+                ErrorHandler.showError(t);
+            }
 	}
 
 	/**

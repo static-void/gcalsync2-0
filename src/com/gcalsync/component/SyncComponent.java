@@ -90,15 +90,23 @@ public class SyncComponent extends MVCComponent implements Runnable, StatusLogge
     }
     
     public void commandAction(Command command, Displayable screen) {
-        // TODO: Allow cancel
-        if (command.getCommandType() == Command.EXIT) {
-            Components.login.showScreen();
+        try {
+            // TODO: Allow cancel
+            if (command.getCommandType() == Command.EXIT) {
+                Components.login.showScreen();
+            }
+        }catch(Throwable t) {
+            ErrorHandler.showError(t);
         }
     }
     
-    public void handle() {
-        showScreen();
-        new Thread(this).start();
+    public void handle() throws Exception {
+        try {
+            showScreen();
+            new Thread(this).start();
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "handle", e);
+        }
     }
     
     
@@ -130,7 +138,7 @@ public class SyncComponent extends MVCComponent implements Runnable, StatusLogge
                 commit.handle();
             }
 
-        } catch (Exception e) {
+        } catch (Throwable e) {
             ErrorHandler.showError("Sync failed", e);
         }
     }

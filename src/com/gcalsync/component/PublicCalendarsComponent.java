@@ -18,6 +18,8 @@ package com.gcalsync.component;
 import javax.microedition.lcdui.*;
 import java.util.Vector;
 import com.gcalsync.cal.gcal.*;
+import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 import com.gcalsync.option.Options;
 
@@ -61,8 +63,9 @@ public class PublicCalendarsComponent extends MVCComponent
 	/**
     * Creates the view
 	*/
-	protected void createView()
+	protected void createView() throws Exception
 	{
+            try {
 		form = new Form("Public Calendars");
 		int screenWidth = getDisplayable().getWidth();
 
@@ -85,17 +88,24 @@ public class PublicCalendarsComponent extends MVCComponent
 		form.addCommand(CMD_FULL_SYNC);
 
 		form.setCommandListener(this);
+            }catch(Exception e) {
+                throw new GCalException(this.getClass(), "createView", e);
+            }
 	}
 
 	/**
     * Updates the view with the saved calendar URLs
 	*/
-	protected void updateView()
+	protected void updateView() throws Exception
 	{
+            try {
 		Options options = Store.getOptions();
 
 		for (int i=0; i<calendarUrls.length; i++)
 			calendarUrls[i].setString(options.calendarUrls[i]);
+            }catch(Exception e) {
+                throw new GCalException(this.getClass(), "updateView", e);
+            }
 	}
 
 	/**
@@ -106,6 +116,7 @@ public class PublicCalendarsComponent extends MVCComponent
 	*/
 	public void commandAction(Command command, Displayable d)
 	{
+            try {
 		int index;
 		Alert a;
 		Options options = Store.getOptions();
@@ -172,13 +183,17 @@ public class PublicCalendarsComponent extends MVCComponent
 				display.setCurrent(a);
 			}
 		}
+            }catch(Throwable t) {
+                ErrorHandler.showError(t);
+            }
 	}
 
 	/**
     * Saves the calendar URLs
 	*/
-	void save()
+	void save() throws Exception
 	{
+            try {
 		Options options = Store.getOptions();
 
 		//save calendar URLs
@@ -186,6 +201,9 @@ public class PublicCalendarsComponent extends MVCComponent
 			options.calendarUrls[i] = calendarUrls[i].getString().trim();
 
 		Store.saveOptions();
+            }catch(Exception e) {
+                throw new GCalException(this.getClass(), "save", e);
+            }
 	}
 
 	/**

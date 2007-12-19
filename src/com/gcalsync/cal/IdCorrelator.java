@@ -16,9 +16,8 @@
 package com.gcalsync.cal;
 
 import com.gcalsync.store.Storable;
-
-import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Vector;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
@@ -34,35 +33,39 @@ public class IdCorrelator {
     public Hashtable phoneIdToGcalId;
     public Hashtable gcalIdToPhoneId;
     //private int[] obsoleteRecords;
+    public Vector mainCalendarPhoneIds; //save which events are from the main calendar
 
     public IdCorrelator(Storable[] idCorrelations) {
         phoneIdToGcalId = new Hashtable(idCorrelations.length);
         gcalIdToPhoneId = new Hashtable(idCorrelations.length);
+        mainCalendarPhoneIds = new Vector(idCorrelations.length);
         for (int i = 0; i < idCorrelations.length; i++) {
             addCorrelation((IdCorrelation) idCorrelations[i]);
         }
     }
 //#ifdef DEBUG
-    public void printContents() {
-        // TODO: remove
-        System.out.println("p->g: " + phoneIdToGcalId.size() + ", g->p: " + gcalIdToPhoneId.size());
-        for (Enumeration i = phoneIdToGcalId.keys(); i.hasMoreElements();) {
-            String phoneId = (String) i.nextElement();
-            String gCalId = null;
-            String reversePimId = null;
-            if (phoneId != null) {
-                gCalId = (String) phoneIdToGcalId.get(phoneId);
-            }
-            if (gCalId != null) {
-                reversePimId = (String) gcalIdToPhoneId.get(gCalId);
-            }
-            System.out.println(phoneId + "->" + gCalId + "<-" + reversePimId);
-        }
-    }
+//#     public void printContents() {
+//#         // TODO: remove
+//#         System.out.println("p->g: " + phoneIdToGcalId.size() + ", g->p: " + gcalIdToPhoneId.size());
+//#         for (Enumeration i = phoneIdToGcalId.keys(); i.hasMoreElements();) {
+//#             String phoneId = (String) i.nextElement();
+//#             String gCalId = null;
+//#             String reversePimId = null;
+//#             if (phoneId != null) {
+//#                 gCalId = (String) phoneIdToGcalId.get(phoneId);
+//#             }
+//#             if (gCalId != null) {
+//#                 reversePimId = (String) gcalIdToPhoneId.get(gCalId);
+//#             }
+//#             System.out.println(phoneId + "->" + gCalId + "<-" + reversePimId);
+//#         }
+//#     }
 //#endif
 
     public void addCorrelation(IdCorrelation idCorrelation) {
         phoneIdToGcalId.put(idCorrelation.phoneCalId, idCorrelation.gCalId);
         gcalIdToPhoneId.put(idCorrelation.gCalId, idCorrelation.phoneCalId);
+        if(idCorrelation.isMainCalendarEvent)
+            mainCalendarPhoneIds.addElement(idCorrelation.phoneCalId);
     }
 }

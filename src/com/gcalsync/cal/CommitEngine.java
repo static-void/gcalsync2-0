@@ -46,16 +46,60 @@ public class CommitEngine {
     public CommitEngine() {
     }
 
-    public void commitSync(GCalEvent[] uploads, GCalEvent[] downloads, GCalClient gCalClient, PhoneCalClient phoneCalClient, Form form) {
+    public int[] commitSync(GCalEvent[] uploads, GCalEvent[] downloads, GCalClient gCalClient, Form form) {
+        int[] downloadStatistics = new int[] {0, 0, 0};
         
-        //update Google Calendar with any upload events
-        processUploadEvents(uploads, gCalClient, form);
+        PhoneCalClient entriesPhoneCalCliente = null;
+        PhoneCalClient phoneCalClient = null;
         
-        //update phone with downloaded events
-        processDownloadEvents(downloads, gCalClient, phoneCalClient, form);
+        try {
+            //update Google Calendar with any upload events
+            processUploadEvents(uploads, gCalClient, form);
+
+            //update phone with downloaded events
+            
+            //if we are on Nokia then add the allday events as Memos in the Entries list
+            entriesPhoneCalCliente = PhoneCalClient.createPhoneCalClient("Entries", true);
+            if(entriesPhoneCalCliente != null) {
+                //add the events
+                processDownloadEvents(downloads, gCalClient, entriesPhoneCalCliente, form, true, false);
+                
+                //save the statistics
+                downloadStatistics = new int[] {entriesPhoneCalCliente.createdCount, entriesPhoneCalCliente.updatedCount, entriesPhoneCalCliente.removedCount};
+                
+                //close the list
+                entriesPhoneCalCliente.close();
+            }
+            
+            //now add the no allday events on Nokia, or all the events for the rest of hte phones
+            phoneCalClient = new PhoneCalClient();
+            processDownloadEvents(downloads, gCalClient, phoneCalClient, form, entriesPhoneCalCliente == null, true);
+
+            //save the statistics
+            downloadStatistics[0] += phoneCalClient.createdCount;
+            downloadStatistics[1] += phoneCalClient.updatedCount;
+            downloadStatistics[2] += phoneCalClient.removedCount;
+            
+            //close the list
+            phoneCalClient.close();
+
+            Store.getTimestamps().lastSync = System.currentTimeMillis();
+            Store.saveTimestamps();
+            
+        }catch(RuntimeException e) {
+            if(entriesPhoneCalCliente != null) {
+                entriesPhoneCalCliente.close();
+            }
+            if(phoneCalClient != null) {
+                phoneCalClient.close();
+            }
+            
+            throw e;
+        }
         
-        Store.getTimestamps().lastSync = System.currentTimeMillis();
-        Store.saveTimestamps();
+        return new int[] {
+            downloadStatistics[0], downloadStatistics[1], downloadStatistics[2],
+            gCalClient.createdCount, gCalClient.updatedCount, gCalClient.updatedCount};
     }
     
     /**
@@ -96,7 +140,8 @@ public class CommitEngine {
     /**
      * Saves events to phone calendar
      */
-    void processDownloadEvents(GCalEvent[] downloads, GCalClient gCalClient, PhoneCalClient phoneCalClient, Form form) {
+    void processDownloadEvents(GCalEvent[] downloads, GCalClient gCalClient, PhoneCalClient phoneCalClient, Form form,
+            boolean processAllday, boolean doNotProcessAllday) {
         Options options;
         Merger merger;
         Hashtable phoneEventsByGcalId;
@@ -129,6 +174,15 @@ public class CommitEngine {
                 }
                 
                 for (int i=0; i<downloads.length; i++) {
+                    if(downloads[i].isAllDay() && !processAllday) continue;
+                    if(!downloads[i].isAllDay() && !doNotProcessAllday) continue;
+                    
+                    //recurrence is not supported by the phone, so ignore it
+                    if(downloads[i].recur != null && !downloads[i].recur.doesPhoneSupportsThisRecurrence()) {
+                        update("Recurrence not supported by the phone", form);
+                        continue;
+                    }
+                    
                     //find the downloaded event in the phone's GCal event list.
                     //if the event doesn't exist, then <phoneEvent> is null and
                     //the event will be added to the phone's calendar

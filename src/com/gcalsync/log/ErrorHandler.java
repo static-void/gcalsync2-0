@@ -27,7 +27,7 @@ import javax.microedition.lcdui.Displayable;
  *
  *
  * Modifications:
- *      dec/2007: Agustin Rivero
+ *      dec/2007: Agustin
  *          showError: changed to lock the thread until the user dismisses the alert
  */
 public class ErrorHandler {
@@ -56,30 +56,35 @@ public class ErrorHandler {
      * @param t The exception/throwable to display
      */
     public static void showError(String message, Throwable t) {
-        //create the alert
-        final Alert alert = getErrorAlert(message, t);
-        
-        final Displayable current = display.getCurrent();
-        
-        //now add a command listener that will unlock the thread
-        //theat I will lock right after showing the alert
-        alert.setCommandListener(new CommandListener() {
-            public void commandAction(Command c, Displayable d) {
-                synchronized(alert) {
-                    alert.notify();
-                    display.setCurrent(current);
-                }
-            }
-        });
-        
-        //show the alert and lock the thread
         try {
+            //create the alert
+            final Alert alert = getErrorAlert(message, t);
+            
+            final Displayable current = display.getCurrent();
+            
+            //now add a command listener that will unlock the thread
+            //theat I will lock right after showing the alert
+            alert.setCommandListener(new CommandListener() {
+                public void commandAction(Command c, Displayable d) {
+                    try {
+                        synchronized(alert) {
+                            alert.notify();
+                            display.setCurrent(current);
+                        }
+                    }catch(Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            
+            //show the alert and lock the thread
+            
             synchronized(alert) {
                 display.setCurrent(alert);
                 alert.wait();
             }
         }catch(Exception e) {
-            
+            e.printStackTrace();
         }
     }
     
@@ -103,7 +108,7 @@ public class ErrorHandler {
         final Alert alert = new Alert("Error", message, null, AlertType.ERROR);
         alert.setTimeout(Alert.FOREVER);
         alert.setType(AlertType.ERROR);
-
+        
         return alert;
     }
 }

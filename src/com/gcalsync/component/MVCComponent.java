@@ -30,7 +30,7 @@ public abstract class MVCComponent implements CommandListener {
     // Returns the screen object from the derived class
     public abstract Displayable getDisplayable();
 
-    public Displayable prepareScreen() {
+    public Displayable prepareScreen() throws Exception {
         try {
             if (getDisplayable() == null) {
                 initModel();
@@ -41,15 +41,17 @@ public abstract class MVCComponent implements CommandListener {
             getDisplayable().setCommandListener((CommandListener) this);
             return getDisplayable();
         } catch (Exception e) {
-            return ErrorHandler.getErrorAlert("Error preparing screen", e);
+            throw new GCalException("MVCComponent", "prepareScreen", e);
+           // return ErrorHandler.getErrorAlert("Error preparing screen", e);
         }
     }
 
-    public void showScreen() {
+    public void showScreen() throws Exception{
         try {
             display.setCurrent(prepareScreen());
         } catch (Exception e) {
-            ErrorHandler.showError("Error showing screen", e);
+            throw new GCalException("MVCComponent", "setEvents", e);
+            //ErrorHandler.showError("Error showing screen", e);
         }
     }
 
@@ -75,7 +77,7 @@ public abstract class MVCComponent implements CommandListener {
 		}
 	}
 
-    public void handle() {
+    public void handle() throws Exception {
         showScreen();
     }
 

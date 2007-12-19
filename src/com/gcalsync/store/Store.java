@@ -19,8 +19,6 @@ import com.gcalsync.log.*;
 import com.gcalsync.cal.*;
 import com.gcalsync.option.Options;
 import com.gcalsync.cal.gcal.GCalFeed;
-import com.gcalsync.store.Storable;
-import com.gcalsync.store.StoreController;
 import javax.microedition.rms.RecordStore;
 
 /**
@@ -49,7 +47,7 @@ public class Store {
         }
     }
 
-    public static Options getOptions() {
+    public static Options getOptions() throws Exception {
         if (options == null) {
 			try { options = (Options) storeController.read(RecordTypes.OPTIONS); }
 			catch (Exception e) 
@@ -58,6 +56,7 @@ public class Store {
 //# 				System.out.println("getOptions() failed...using default values, err=" + e);
 //#endif
 				options = null;
+                                throw new GCalException("Error reading Store Options (Store.getOptions)", e);
 			}
 
 			if (options == null)

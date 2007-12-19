@@ -61,49 +61,53 @@ import com.gcalsync.cal.Recurrence;
  * @date $Date: 2006-12-30 03:52:37 -0500 (Sat, 30 Dec 2006) $
  */
 public class GCalParser {
-    
-    public void parseCalendar(byte[] calendarBytes, String title, boolean useRemindersForThisCalendar, Vector gcalEvents) {
-        GCalEvent gCalEvent;
-        if (calendarBytes != null && calendarBytes.length > 0) {
-            try {
-                InputStreamReader reader = null;
+
+    public void parseCalendar(byte[] calendarBytes, String title, boolean useRemindersForThisCalendar, Vector gcalEvents) throws Exception {
+        try {
+            GCalEvent gCalEvent;
+            if (calendarBytes != null && calendarBytes.length > 0) {
                 try {
-                    reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes), "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes));
-                }
-                XmlParser xmlParser = new XmlParser(reader, 300);
-                ParseEvent event = xmlParser.read();
-                while (!isEnd(event)) {
-                    if (event.getType() == Xml.START_TAG) {
-                        String name = event.getName();
-                        if ("entry".equals(name)) {
-                            gCalEvent = parseEvent(xmlParser);
-                            gCalEvent.parentCalendarTitle = title;
-                            if (!useRemindersForThisCalendar) {
-                                gCalEvent.reminder = -1;
+                    InputStreamReader reader = null;
+                    try {
+                        reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes), "UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes));
+                    }
+                    XmlParser xmlParser = new GCalXmlParser(reader, 300); //use the customized parser to support Latin1 characters
+                    ParseEvent event = xmlParser.read();
+                    while (!isEnd(event)) {
+                        if (event.getType() == Xml.START_TAG) {
+                            String name = event.getName();
+                            if ("entry".equals(name)) {
+                                gCalEvent = parseEvent(xmlParser);
+                                gCalEvent.parentCalendarTitle = title;
+                                if (!useRemindersForThisCalendar) {
+                                    gCalEvent.reminder = -1;
+                                }
+                                gcalEvents.addElement(gCalEvent);
                             }
-                            gcalEvents.addElement(gCalEvent);
+                        }
+                        event = xmlParser.read();
+                    }
+
+                    //find all recurrence exceptions, search the <gcalEvents> Vector for
+                    // the original events by ID, and add an exception to their repeat rule
+                    GCalEvent origEvent;
+                    for (int i=0; i<gcalEvents.size(); i++) {
+                        gCalEvent = (GCalEvent)gcalEvents.elementAt(i);
+                        if (gCalEvent.origEventId.length() > 0) {
+                            origEvent = findEvent(gcalEvents, gCalEvent.origEventId);
+                            if (origEvent != null && origEvent.recur != null)
+                                origEvent.recur.addExceptDate(gCalEvent.startTime);
                         }
                     }
-                    event = xmlParser.read();
+
+                } catch (IOException e) {
+                    ErrorHandler.showError("Failed to download calendar", e);
                 }
-                
-                //find all recurrence exceptions, search the <gcalEvents> Vector for
-                // the original events by ID, and add an exception to their repeat rule
-                GCalEvent origEvent;
-                for (int i=0; i<gcalEvents.size(); i++) {
-                    gCalEvent = (GCalEvent)gcalEvents.elementAt(i);
-                    if (gCalEvent.origEventId.length() > 0) {
-                        origEvent = findEvent(gcalEvents, gCalEvent.origEventId);
-                        if (origEvent != null && origEvent.recur != null)
-                            origEvent.recur.addExceptDate(gCalEvent.startTime);
-                    }
-                }
-                
-            } catch (IOException e) {
-                ErrorHandler.showError("Failed to download calendar", e);
             }
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "parseCalendar", e);
         }
     }
     
@@ -160,70 +164,74 @@ public class GCalParser {
         return feedsArray;
     }
     
-    private GCalEvent parseEvent(XmlParser xmlParser) throws IOException {
-        GCalEvent gCalEvent = new GCalEvent();
-        ParseEvent nextEvent = xmlParser.peek();
-        
-        while (!isEnd(nextEvent, "entry")) {
-            String name = nextEvent.getName();
-            int type = nextEvent.getType();
-            xmlParser.read();
-            if ((type == Xml.START_TAG)) {
-                if ("id".equals(name)) {
-                    gCalEvent.id = parseTextNode(xmlParser, "id");
-                }else if ("title".equals(name)) {
-                    gCalEvent.title = parseTextNode(xmlParser, "title");
-                } else if ("content".equals(name)) {
-                    gCalEvent.note = parseTextNode(xmlParser, "content");
-                } else if ("where".equals(name)) {
-                    gCalEvent.location = parseValue(nextEvent);
-                } else if ("updated".equals(name)) {
-                    String updatedIsoDate = parseTextNode(xmlParser, "updated");
-                    if ((updatedIsoDate != null) && (updatedIsoDate.length() > 0)) {
-                        gCalEvent.updated = DateUtil.isoDateToLong(updatedIsoDate);
-                    }
-                } else if ("published".equals(name)) {
-                    String date = parseTextNode(xmlParser, "published");
-                    if ((date != null) && (date.length() > 0)) {
-                        gCalEvent.published = DateUtil.isoDateToLong(date);
-                    }
-                } else if ("when".equals(name) && gCalEvent.recur == null) {
-                    long[] when = parseWhen(nextEvent);
-                    gCalEvent.startTime = when[0];
-                    gCalEvent.endTime = when[2];
-                    
-                    //save if the event is an allday event
-                    if(when[1] == 0 && when[3] == 0) {
-                        gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_YES;
-                    }
-                    else {
-                        gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_NO;
-                    }
-                } else if ("eventStatus".equals(name)) {
-                    gCalEvent.cancelled = isCancelled(parseValue(nextEvent));
-                } else if ("reminder".equals(name)) {
-                    gCalEvent.reminder = parseReminder(nextEvent);
-                } else if ("recurrence".equals(name)) {
-                    parseRecurrence(xmlParser, gCalEvent);
-                } else if (name.toLowerCase().equals("originalevent")) {
-                    String id = nextEvent.getValue("href");
-                    if (id != null) gCalEvent.origEventId = id;
-                } else if("uid".equals(name)) {
-                    gCalEvent.uid = nextEvent.getAttribute("value").getValue();
-                    
-                    //google UID ends with @google.com, so lets remove that part and save 11bytes of memory
-                    /*if(gCalEvent.uid.endsWith("@google.com")) {
-                        gCalEvent.uid = gCalEvent.uid.substring(0, gCalEvent.uid.length() - 11);
-                    }*/
-                } else if("link".equals(name) &&  "edit".equals(nextEvent.getAttribute("rel").getValue())) {
-                    gCalEvent.editLink = nextEvent.getAttribute("href").getValue();
-                }
-                
-            }
-            nextEvent = xmlParser.peek();
-        }
+    private GCalEvent parseEvent(XmlParser xmlParser) throws IOException, Exception {
+        try {
+            GCalEvent gCalEvent = new GCalEvent();
+            ParseEvent nextEvent = xmlParser.peek();
 
-        return gCalEvent;
+            while (!isEnd(nextEvent, "entry")) {
+                String name = nextEvent.getName();
+                int type = nextEvent.getType();
+                xmlParser.read();
+                if ((type == Xml.START_TAG)) {
+                    if ("id".equals(name)) {
+                        gCalEvent.id = parseTextNode(xmlParser, "id");
+                    }else if ("title".equals(name)) {
+                        gCalEvent.title = parseTextNode(xmlParser, "title");
+                    } else if ("content".equals(name)) {
+                        gCalEvent.note = parseTextNode(xmlParser, "content");
+                    } else if ("where".equals(name)) {
+                        gCalEvent.location = parseValue(nextEvent);
+                    } else if ("updated".equals(name)) {
+                        String updatedIsoDate = parseTextNode(xmlParser, "updated");
+                        if ((updatedIsoDate != null) && (updatedIsoDate.length() > 0)) {
+                            gCalEvent.updated = DateUtil.isoDateToLong(updatedIsoDate);
+                        }
+                    } else if ("published".equals(name)) {
+                        String date = parseTextNode(xmlParser, "published");
+                        if ((date != null) && (date.length() > 0)) {
+                            gCalEvent.published = DateUtil.isoDateToLong(date);
+                        }
+                    } else if ("when".equals(name) && gCalEvent.recur == null) {
+                        long[] when = parseWhen(nextEvent);
+                        gCalEvent.startTime = when[0];
+                        gCalEvent.endTime = when[2];
+
+                        //save if the event is an allday event
+                        if(when[1] == 0 && when[3] == 0) {
+                            gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_YES;
+                        }
+                        else {
+                            gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_NO;
+                        }
+                    } else if ("eventStatus".equals(name)) {
+                        gCalEvent.cancelled = isCancelled(parseValue(nextEvent));
+                    } else if ("reminder".equals(name)) {
+                        gCalEvent.reminder = parseReminder(nextEvent);
+                    } else if ("recurrence".equals(name)) {
+                        parseRecurrence(xmlParser, gCalEvent);
+                    } else if (name.toLowerCase().equals("originalevent")) {
+                        String id = nextEvent.getValue("href");
+                        if (id != null) gCalEvent.origEventId = id;
+                    } else if("uid".equals(name)) {
+                        gCalEvent.uid = nextEvent.getAttribute("value").getValue();
+
+                        //google UID ends with @google.com, so lets remove that part and save 11bytes of memory
+                        /*if(gCalEvent.uid.endsWith("@google.com")) {
+                            gCalEvent.uid = gCalEvent.uid.substring(0, gCalEvent.uid.length() - 11);
+                        }*/
+                    } else if("link".equals(name) &&  "edit".equals(nextEvent.getAttribute("rel").getValue())) {
+                        gCalEvent.editLink = nextEvent.getAttribute("href").getValue();
+                    }
+
+                }
+                nextEvent = xmlParser.peek();
+            }
+
+            return gCalEvent;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "parseEvent", e);
+        }
     }
     
     private int parseReminder(ParseEvent event) {
@@ -243,7 +251,8 @@ public class GCalParser {
         }
     }
     
-    private GCalFeed parseFeedEntry(XmlParser xmlParser) throws IOException {
+    private GCalFeed parseFeedEntry(XmlParser xmlParser) throws IOException, Exception {
+        try {
         String id = null;
         String title = null;
         String url = null;
@@ -279,6 +288,9 @@ public class GCalParser {
 //#endif
             return null;
         }
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "parseFeedEntry", e);
+        }
     }
     
     
@@ -294,27 +306,31 @@ public class GCalParser {
         return (eventStatus != null) && eventStatus.endsWith("canceled");
     }
     
-    private long[] parseWhen(ParseEvent event) {
-        long[] result = new long[4];
-        
-        Attribute startTime = event.getAttribute("startTime");
-        if ((startTime != null) && (startTime.getValue() != null)) {
-            //System.out.println("Start time: " + startTime.getValue());
-            long[] vals = DateUtil.isoDateToLongExtraInfo(startTime.getValue());
-            result[0] = vals[0];
-            result[1] = vals[1];
-            
+    private long[] parseWhen(ParseEvent event) throws Exception {
+        try {
+            long[] result = new long[4];
+
+            Attribute startTime = event.getAttribute("startTime");
+            if ((startTime != null) && (startTime.getValue() != null)) {
+                //System.out.println("Start time: " + startTime.getValue());
+                long[] vals = DateUtil.isoDateToLongExtraInfo(startTime.getValue());
+                result[0] = vals[0];
+                result[1] = vals[1];
+
+            }
+
+            Attribute endTime = event.getAttribute("endTime");
+            if ((endTime != null) && (endTime.getValue() != null)) {
+                //System.out.println("End time: " + endTime.getValue());
+                long[] vals = DateUtil.isoDateToLongExtraInfo(endTime.getValue());
+                result[2] = vals[0];
+                result[3] = vals[1];
+            }
+
+            return result;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "parseWhen", e);
         }
-        
-        Attribute endTime = event.getAttribute("endTime");
-        if ((endTime != null) && (endTime.getValue() != null)) {
-            //System.out.println("End time: " + endTime.getValue());
-            long[] vals = DateUtil.isoDateToLongExtraInfo(endTime.getValue());
-            result[2] = vals[0];
-            result[3] = vals[1];
-        }
-        
-        return result;
     }
     
     /**

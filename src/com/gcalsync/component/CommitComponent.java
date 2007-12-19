@@ -20,20 +20,10 @@
  */
 package com.gcalsync.component;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Vector;
 
 import javax.microedition.lcdui.*;
-import javax.microedition.pim.Event;
-import javax.microedition.pim.PIMException;
-
-import com.gcalsync.option.Options;
-import com.gcalsync.store.Store;
 import com.gcalsync.cal.gcal.GCalClient;
 import com.gcalsync.cal.gcal.GCalEvent;
-import com.gcalsync.cal.phonecal.PhoneCalClient;
-import com.gcalsync.util.*;
 import com.gcalsync.log.*;
 import com.gcalsync.cal.*;
 
@@ -44,7 +34,7 @@ import com.gcalsync.cal.*;
 public class CommitComponent extends MVCComponent implements Runnable, StatusLogger {
     Form form;
     GCalClient gCalClient;
-    PhoneCalClient phoneCalClient;
+    //PhoneCalClient phoneCalClient;
     GCalEvent[] uploads;
     GCalEvent[] downloads;
     
@@ -108,8 +98,12 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
      *          originates
      */
     public void commandAction(Command c, Displayable d) {
-        if (c.getCommandType() == Command.EXIT) {
-            Components.login.showScreen();
+        try {
+            if (c.getCommandType() == Command.EXIT) {
+                Components.login.showScreen();
+            }
+        }catch(Exception e) {
+            ErrorHandler.showError(e);
         }
     }
     
@@ -117,9 +111,13 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
      * Updates screen and begins processing events to be
      * downloaded/uploaded
      */
-    public void handle() {
-        showScreen();
-        new Thread(this).start();
+    public void handle() throws Exception {
+        try {
+            showScreen();
+            new Thread(this).start();
+        }catch(Exception e) {
+            throw new GCalException(CommitComponent.class, "handle", e);
+        }
     }
     
     /**
@@ -127,8 +125,8 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
      */
     public void run() {
         try {
-            phoneCalClient = new PhoneCalClient();
-            /*
+            /*phoneCalClient = new PhoneCalClient();
+            
             //update Google Calendar with any upload events
             processUploadEvents();
             
@@ -140,13 +138,13 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
             */
             
             CommitEngine commitEngine = new CommitEngine();
-            commitEngine.commitSync(this.uploads, this.downloads, this.gCalClient, this.phoneCalClient, this.form);
+            int[] commnitStatistics = commitEngine.commitSync(this.uploads, this.downloads, this.gCalClient, this.form);
             
             this.form.append(new Spacer(getDisplayable().getWidth(), 20));
             update("GCal:  " + gCalClient.createdCount + " new, " + gCalClient.updatedCount + " updated, " + gCalClient.removedCount + " removed events");
-            update("Phone: " + phoneCalClient.createdCount + " new, " + phoneCalClient.updatedCount + " updated, " + phoneCalClient.removedCount + " removed events");
+            update("Phone: " + commnitStatistics[0] + " new, " + commnitStatistics[1] + " updated, " + commnitStatistics[2] + " removed events");
             
-            phoneCalClient.close();
+            //phoneCalClient.close();
             
         } catch (Exception e) {
             ErrorHandler.showError(e.getMessage(), e);
@@ -244,15 +242,19 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     /**
      * Sets the events to be uploaded/downloaded
      */
-    public void setEvents(GCalEvent[] uploads, GCalEvent[] downloads) {
-        if (uploads != null) {
-            this.uploads = new GCalEvent[uploads.length];
-            System.arraycopy(uploads, 0, this.uploads, 0, uploads.length);
-        }
-        
-        if (downloads != null) {
-            this.downloads = new GCalEvent[downloads.length];
-            System.arraycopy(downloads, 0, this.downloads, 0, downloads.length);
+    public void setEvents(GCalEvent[] uploads, GCalEvent[] downloads) throws Exception {
+        try {
+            if (uploads != null) {
+                this.uploads = new GCalEvent[uploads.length];
+                System.arraycopy(uploads, 0, this.uploads, 0, uploads.length);
+            }
+
+            if (downloads != null) {
+                this.downloads = new GCalEvent[downloads.length];
+                System.arraycopy(downloads, 0, this.downloads, 0, downloads.length);
+            }
+        }catch(Exception e) {
+            throw new GCalException("CommitComponent", "setEvents", e);
         }
     }
 }

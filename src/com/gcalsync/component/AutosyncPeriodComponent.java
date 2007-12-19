@@ -23,6 +23,7 @@
 package com.gcalsync.component;
 
 import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.Displayable;
@@ -51,42 +52,56 @@ public class AutosyncPeriodComponent extends MVCComponent {
         // done in constructor
     }
     
-    protected void createView() {
-        form = new Form("AutoSync period");
-        
-        periodField = new TextField("Period (mins)", Integer.toString(Store.getOptions().autosyncTime), 4, TextField.NUMERIC);
-        form.append(periodField);
-        
-        saveCommand = new Command("Save", Command.OK, 1);
-        Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
-        
-        form.addCommand(saveCommand);
-        form.addCommand(cancelCommand);
-        
-        form.setCommandListener(this);
-    }
-    
-    protected void updateView() {
-        periodField.setString(Integer.toString(Store.getOptions().autosyncTime));
-    }
-    
-    public void commandAction(Command command, Displayable displayable) {
-        if (command.getLabel().equals(saveCommand.getLabel())) {
-            if (setOptions()) {
-                Store.saveOptions();
-                Components.options.showScreen();
-            }
-        } else if (command.getCommandType() == Command.CANCEL) {
-            Components.options.showScreen();
+    protected void createView() throws Exception {
+        try {
+            form = new Form("AutoSync period");
+
+            periodField = new TextField("Period (mins)", Integer.toString(Store.getOptions().autosyncTime), 4, TextField.NUMERIC);
+            form.append(periodField);
+
+            saveCommand = new Command("Save", Command.OK, 1);
+            Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
+
+            form.addCommand(saveCommand);
+            form.addCommand(cancelCommand);
+
+            form.setCommandListener(this);
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "createView", e);
         }
     }
     
-    private boolean setOptions() {
+    protected void updateView() throws Exception {
+        try {
+            periodField.setString(Integer.toString(Store.getOptions().autosyncTime));
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "updateView", e);
+        }
+    }
+    
+    public void commandAction(Command command, Displayable displayable) {
+        try {
+            if (command.getLabel().equals(saveCommand.getLabel())) {
+                if (setOptions()) {
+                    Store.saveOptions();
+                    Components.options.showScreen();
+                }
+            } else if (command.getCommandType() == Command.CANCEL) {
+                Components.options.showScreen();
+            }
+        }catch(Exception e) {
+            ErrorHandler.showError(e);
+        }
+    }
+    
+    private boolean setOptions() throws Exception {
         try {
             Store.getOptions().autosyncTime = Integer.parseInt(periodField.getString());
         } catch (NumberFormatException e) {
             ErrorHandler.showError("The period must be a number", e);
             return false;
+        } catch(Exception e) {
+            throw new GCalException(this.getClass(), "setOptions", e);
         }
         return true;
     }
