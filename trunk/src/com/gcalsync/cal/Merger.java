@@ -16,26 +16,26 @@
  *
  *
  * * * Changes:
- *  --/nov/2007 Agustin 
+ *  --/nov/2007 Agustin
  *      -mergeIntoGCalEvent: BlackBerry patch for allday events remove - it is no longer needed
  *      -mergeIntoPhoneEvent: support for allday events added BlackBerryes (and non BB)
  *      -the GCalEvent.updated field now is used (get from and set into phone Event)
  *  --/dec/2007 Agustin
  *      -mergeIntoGCalEvent: reads BB allday events using RIM API (RIM's ALLDAY field)
+ *      -mergeIntoGCalEvent, mergeIntoPhoneEvent: support for Nokia allday events
  */
 package com.gcalsync.cal;
 
-import java.util.TimeZone;
 
 import javax.microedition.pim.Event;
 import javax.microedition.pim.PIMException;
 import javax.microedition.lcdui.Form;
 
 import com.gcalsync.option.Options;
-import com.gcalsync.cal.Recurrence;
 import com.gcalsync.cal.gcal.GCalClient;
 import com.gcalsync.cal.gcal.GCalEvent;
 import com.gcalsync.cal.phonecal.PhoneCalClient;
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 import com.gcalsync.util.DateUtil;
 
@@ -53,13 +53,17 @@ public class Merger {
     
     private static final int BB_ALLDAY_FIELD = 20000928; //net.rim.blackberry.api.pdap.BlackBerryEvent.ALLDAY
     
-    public Merger(PhoneCalClient phoneCalClient, GCalClient gCalClient) {
-        this.phoneCalClient = phoneCalClient;
-        this.gCalClient = gCalClient;
-        this.options = Store.getOptions();
+    public Merger(PhoneCalClient phoneCalClient, GCalClient gCalClient) throws Exception {
+        try {
+            this.phoneCalClient = phoneCalClient;
+            this.gCalClient = gCalClient;
+            this.options = Store.getOptions();
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "{init}", e);
+        }
     }
     
-    public Event copyToPhoneEvent(GCalEvent gCalEvent) throws PIMException {
+    public Event copyToPhoneEvent(GCalEvent gCalEvent) throws PIMException, Exception {
         Event phoneEvent = phoneCalClient.createEvent();
         mergeIntoPhoneEvent(phoneEvent, gCalEvent);
         return phoneEvent;
@@ -81,7 +85,8 @@ public class Merger {
                 && pe.endTime == gCalEvent.endTime);
     }
     
-    public void mergeEvents(Event phoneEvent, GCalEvent gCalEvent, Form form) throws PIMException {
+    public void mergeEvents(Event phoneEvent, GCalEvent gCalEvent, Form form) throws PIMException, Exception {
+        try {
         boolean success;
         
         if (phoneEvent == null) {
@@ -89,10 +94,18 @@ public class Merger {
 //#ifdef DEBUG_INFO
 //#                 System.out.println("=> Inserting event " + gCalEvent.title + ", not present in phone");
 //#endif
-                phoneEvent = copyToPhoneEvent(gCalEvent);
+                try {
+                    phoneEvent = copyToPhoneEvent(gCalEvent);
+
+                    if (form != null) form.append("Saving \"" + gCalEvent.title + "\"...");
+                    success = phoneCalClient.insertEvent(phoneEvent, gCalEvent.uid);
+                }catch(PIMException e) {
+                    throw e;
+                }catch(Exception e) {
+                    success = false;
+                    form.append(e.getMessage() + "\n");
+                }
                 
-                if (form != null) form.append("Saving \"" + gCalEvent.title + "\"...");
-                success = phoneCalClient.insertEvent(phoneEvent, gCalEvent.uid);
                 if (form != null) {
                     form.append(success ? "OK" : "ERR");
                     form.append("\n");
@@ -140,14 +153,22 @@ public class Merger {
 //#                 System.out.println("=> Updating event " + gCalEvent.title + " in phone");
 //#endif
                 if (form != null) form.append("Updating \"" + gCalEvent.title + "\" in phone...");
-                mergeIntoPhoneEvent(phoneEvent, gCalEvent);
-                success = phoneCalClient.updateEvent(phoneEvent);
+                try {
+                    mergeIntoPhoneEvent(phoneEvent, gCalEvent);
+                    success = phoneCalClient.updateEvent(phoneEvent);
+                }catch(Exception e) {
+                    success = false;
+                    form.append(e.getMessage() + "\n");
+                }
             }
             
             if (form != null) {
                 form.append(success ? "OK" : "ERR");
                 form.append("\n");
             }
+        }
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "mergeEvents", e);
         }
         //bug: if you do a full sync and the same event gets committed, the phone Cal wins
         //merge because it was written at a time after the GCalEvent was updated in Google
@@ -163,7 +184,7 @@ public class Merger {
         }*/
     }
     
-    private void mergeIntoPhoneEvent(Event phoneEvent, GCalEvent gCalEvent) {
+    private void mergeIntoPhoneEvent(Event phoneEvent, GCalEvent gCalEvent) throws Exception {
         if (isSet(gCalEvent.title)) {
             phoneCalClient.setStringField(phoneEvent, Event.SUMMARY, gCalEvent.title);
         }
@@ -175,8 +196,8 @@ public class Merger {
         }
         
         boolean fixTimeForAlldayEvent = false;
-        // apparently in Nokia in J2ME allday events are saved one day forward (or the end time is used), so
-        // let's fix that when saving
+        boolean useLocalTime = false; //in Nokia allday events are saved at midnight but with
+        //local time in stead of GMT
         
         if(gCalEvent.isAllDay()) {
             if(phoneCalClient.setBooleanField(phoneEvent, BB_ALLDAY_FIELD, true)) {
@@ -186,8 +207,13 @@ public class Merger {
                 //the Java documentation that says that allday events are events with the same start
                 //and end date/time
                 fixTimeForAlldayEvent = false;
-            }
-            else {
+            } else if(phoneEvent.getPIMList().getName().equalsIgnoreCase("Entries")) {
+                //if we are in the Entries event list that means that we are adding a Memo
+                //on Nokia, so do not patch the date
+                fixTimeForAlldayEvent = false;
+                
+                useLocalTime = true;
+            } else {
                 fixTimeForAlldayEvent = true;
             }
         }
@@ -195,19 +221,25 @@ public class Merger {
         if (isSet(gCalEvent.startTime)) {
             if(fixTimeForAlldayEvent) {
                 //TODO: support allday events that last more than one day for non blackberry devices
-                phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime + 24 * 60 * 60 * 1000);
-            }
-            else {
                 phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime);
+            } else {
+                if(useLocalTime) {
+                    phoneCalClient.setDateField(phoneEvent, Event.START, DateUtil.gmtTimeToLocalTime(gCalEvent.startTime));
+                } else {
+                    phoneCalClient.setDateField(phoneEvent, Event.START, gCalEvent.startTime);
+                }
             }
         }
         if (isSet(gCalEvent.endTime)) {
             if(fixTimeForAlldayEvent) { //use start as end for allday events
                 //TODO: support allday events that last more than one day for non blackberry devices
-                phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime + 24 * 60 * 60 * 1000);
-            }
-            else {
-                phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.endTime);
+                phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.startTime);
+            } else {
+                if(useLocalTime) {
+                    phoneCalClient.setDateField(phoneEvent, Event.END, DateUtil.gmtTimeToLocalTime(gCalEvent.endTime));
+                } else {
+                    phoneCalClient.setDateField(phoneEvent, Event.END, gCalEvent.endTime);
+                }
             }
         }
         
@@ -219,8 +251,9 @@ public class Merger {
             if (gCalEvent.recur != null && gCalEvent.recur.getRepeat() != null)
                 phoneEvent.setRepeat(gCalEvent.recur.getRepeat());
         } catch (Exception e) {
+            throw new Exception("Recurrence not supported by the phone" + (e.getMessage() != null ? (": " + e.getMessage()) : "" ) );
 //#ifdef DEBUG_ERR
-//# 			System.out.println("Failed to copy repeat rule into phone cal, error=" + e.toString());
+//# // 			System.out.println("Failed to copy repeat rule into phone cal, error=" + e.toString());
 //#endif
         }
     }
@@ -264,13 +297,25 @@ public class Merger {
         long alldayEvent = phoneCalClient.getBooleanField(phoneEvent, BB_ALLDAY_FIELD);
         if(alldayEvent == 0) gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_NO;
         else if(alldayEvent == 1) gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_YES;
-        else gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_UNKNOWN; //if we are not in a BB
+        //if we are not on a BB
         
-        //now let's fix the time of allday events; from Nokia experience allday events are saved one
-        //day forward, so lets fix that
-        if(gCalEvent.endTime == gCalEvent.startTime && gCalEvent.isPlatformAllday == GCalEvent.PLATFORM_ALLDAY_UNKNOWN) {
-            gCalEvent.startTime -= 24 * 60 * 60 * 1000;
+        //if we are on Nokia (on Nokia allday events are Memos in the Entries list)
+        else if(phoneEvent.getPIMList().getName().equalsIgnoreCase("Entries")) {
+            gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_YES;
+            
+            //on Nokia Memos start and end time are at midnight, but at midnignt in local time
+            //and not in GMT time, so let's patch the start and end time
+            gCalEvent.startTime = DateUtil.localTimeToGmtTime(gCalEvent.startTime);
+            gCalEvent.endTime = DateUtil.localTimeToGmtTime(gCalEvent.endTime);
         }
+        //if we are nither on BB nor on Nokia, but this is an allday event
+        else if(gCalEvent.endTime == gCalEvent.startTime) {
+            gCalEvent.isPlatformAllday = GCalEvent.PLATFORM_ALLDAY_UNKNOWN; //we cannot tell for sure that this is an allday event
+            
+            //let's fix the end time as to make it last one whole day
+            gCalEvent.endTime += 24 * 60 * 60 * 1000;
+        }
+        
         
        /* if (gCalEvent.isAllDay(Store.getOptions().uploadTimeZoneOffset)) {
             //TODO: BlackBerry phones start all-day events on previous day (bug in BB OS?)

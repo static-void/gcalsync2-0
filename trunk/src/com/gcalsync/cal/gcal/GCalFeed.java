@@ -15,6 +15,7 @@
 */
 package com.gcalsync.cal.gcal;
 
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.*;
 
 import java.io.DataInputStream;
@@ -41,15 +42,20 @@ public class GCalFeed extends Storable {
         super(RecordTypes.FEED);
     }
 
-    public GCalFeed(String id, String title, String url) {
+    public GCalFeed(String id, String title, String url) throws Exception {
         this();
-        this.id = id;
-        this.title = title;
-        this.url = url;
-        mainCalendar = url.endsWith(Store.getOptions().username + "%40gmail.com/private/full");
-		this.prefix = "";
-        this.sync = false;
-        this.reminders = false;
+        
+        try {
+            this.id = id;
+            this.title = title;
+            this.url = url;
+            mainCalendar = url.endsWith(Store.getOptions().username + "%40gmail.com/private/full");
+                    this.prefix = "";
+            this.sync = false;
+            this.reminders = false;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "{init}", e);
+        }
     }
 
     public void readRecord(DataInputStream in) throws IOException {

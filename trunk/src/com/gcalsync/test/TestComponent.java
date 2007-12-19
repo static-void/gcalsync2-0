@@ -35,9 +35,13 @@ import javax.microedition.lcdui.StringItem;
 import javax.microedition.pim.Event;
 import javax.microedition.pim.EventList;
 import javax.microedition.pim.PIM;
+import javax.microedition.pim.PIMList;
+import javax.microedition.pim.RepeatRule;
+import javax.microedition.pim.ToDo;
+import javax.microedition.pim.ToDoList;
 
 /**
- * 
+ *
  * @author Agustin
  * @author Yusuf Abdi
  * @version $Rev: 1 $
@@ -82,7 +86,7 @@ public class TestComponent extends MVCComponent  {
         this.form.setCommandListener(this);
         //com.nokia.microedition.pim.EventImpl ei;
         
-        addInfo("Test screen  ", "v7");
+        addInfo("Test screen  ", "v9");
     }
     
     /**
@@ -93,29 +97,33 @@ public class TestComponent extends MVCComponent  {
      *                    originates
      */
     public void commandAction(Command c, Displayable displayable) {
-        if (c.getCommandType() == Command.CANCEL) {
-            Components.login.showScreen();
-        } else if(c == CMD_PHONE_EVENTS) {
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    phoneEvents();
-                }
-            });
-            t.start();
-        } else if(c == CMD_BB_INFO) {
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    bbInfo();
-                }
-            });
-            t.start();
-        } else if(c == CMD_ADD_EVENT) {
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    addTestEvent();
-                }
-            });
-            t.start();
+        try {
+            if (c.getCommandType() == Command.CANCEL) {
+                Components.login.showScreen();
+            } else if(c == CMD_PHONE_EVENTS) {
+                Thread t = new Thread(new Runnable() {
+                    public void run() {
+                        phoneEvents();
+                    }
+                });
+                t.start();
+            } else if(c == CMD_BB_INFO) {
+                Thread t = new Thread(new Runnable() {
+                    public void run() {
+                        bbInfo();
+                    }
+                });
+                t.start();
+            } else if(c == CMD_ADD_EVENT) {
+                Thread t = new Thread(new Runnable() {
+                    public void run() {
+                        addTestEvent();
+                    }
+                });
+                t.start();
+            }
+        }catch(Throwable t) {
+            ErrorHandler.showError(t);
         }
     }
     
@@ -123,7 +131,7 @@ public class TestComponent extends MVCComponent  {
         try {
             this.form.deleteAll();
             
-            PhoneCalClient phoneCalClient = new PhoneCalClient();
+            //PhoneCalClient phoneCalClient = new PhoneCalClient();
             
             Options options = Store.getOptions();
             long now = System.currentTimeMillis();
@@ -131,19 +139,58 @@ public class TestComponent extends MVCComponent  {
             String endDate = DateUtil.longToIsoDate(now, options.futureDays);
             long startDateLong = DateUtil.isoDateToLong(startDate);
             long endDateLong = DateUtil.isoDateToLong(endDate) + DateUtil.DAY; // want all events starting before midnigth on endDate
-            Enumeration phoneEvents = phoneCalClient.getPhoneEvents(startDateLong, endDateLong);
-            Hashtable phoneEventsByGcalId = new Hashtable();
-            Merger merger = new Merger(phoneCalClient, null);
             
-            //enumerate all GCal events in the phone's calendar
-            while (phoneEvents.hasMoreElements()) {
+           /* printCalendarList(null, startDateLong, endDateLong);
+            
+            PIM pim = PIM.getInstance();
+            String[] ss = pim.listPIMLists(PIM.EVENT_LIST);
+            for(int i = 0; i < ss.length; i++) {
+                try {
+                    printCalendarList(ss[i], startDateLong, endDateLong);
+                }catch(Exception e) {
+                    ErrorHandler.showError(e);
+                }
+            }*/
+            
+            printCalendarList("Entries", startDateLong, endDateLong);
+            
+            //  this.form.append("\n **TODO**\n");
+            //  printTodoData(startDateLong, endDateLong);
+            
+        }catch(Throwable e) {
+            ErrorHandler.showError(e);
+        }
+    }
+    
+    private void printCalendarList(String listName, long startDate, long endDate) throws Exception {
+        PIM pim = PIM.getInstance();
+        
+        EventList phoneEventList = null;
+        if(listName == null) {
+            phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
+            this.form.append("\nNO LIST NAME\n");
+        } else {
+            phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE, listName);
+            this.form.append("\nLIST: " + listName + "\n");
+        }
+        Enumeration phoneEvents =  phoneEventList.items(EventList.OCCURRING, startDate, endDate, false);
+        
+        //Enumeration phoneEvents = phoneCalClient.getPhoneEvents(startDateLong, endDateLong);
+        
+        Hashtable phoneEventsByGcalId = new Hashtable();
+        PhoneCalClient phoneCalClient = new PhoneCalClient();
+        Merger merger = new Merger(phoneCalClient, null);
+        
+        //enumerate all GCal events in the phone's calendar
+        while (phoneEvents.hasMoreElements()) {
+            try {
                 Event phoneEvent = (Event)phoneEvents.nextElement();
-                String gcalId = phoneCalClient.getGCalId(phoneEvent);
-                if (gcalId != null) phoneEventsByGcalId.put(gcalId, phoneEvent);
+                // String gcalId = phoneCalClient.getGCalId(phoneEvent);
+                //  if (gcalId != null) phoneEventsByGcalId.put(gcalId, phoneEvent);
                 
                 GCalEvent gCalEvent = merger.copyToGCalEvent(phoneEvent);
                 
-                String extraInfo = " S" + DateUtil.longToDateTimeGMT(gCalEvent.startTime) + " E" + DateUtil.longToDateTimeGMT(gCalEvent.endTime) +
+                String extraInfo =  " S" + DateUtil.longToDateTimeGMT(gCalEvent.startTime) + " E" + DateUtil.longToDateTimeGMT(gCalEvent.endTime) +
                         " S2" + DateUtil.longToDateTime(gCalEvent.startTime) + " E2" + DateUtil.longToDateTime(gCalEvent.endTime);
                 
                 String[] ss = phoneEvent.getCategories();
@@ -156,14 +203,71 @@ public class TestComponent extends MVCComponent  {
                 extraInfo += " PAL" + gCalEvent.isPlatformAllday;
                 
                 this.form.append(gCalEvent.toString() + extraInfo + "\n");
+                
+                
+                //String info = "name=" + phoneEvent.getString(Event.SUMMARY, 0);
+                // this.form.append(info + "\n" + gCalEvent.toString() + "\n");
+                
+            }catch(Exception e) {
+                ErrorHandler.showError("printCalendarList_while", e);
+            }
+        }
+        
+        phoneEventList.close();
+        //phoneCalClient.close();
+    }
+    
+    private void printTodoData(long startDate, long endDate) {
+        try {
+            PIM pim = PIM.getInstance();
+            String[] ss = pim.listPIMLists(PIM.TODO_LIST);
+            for(int i = 0; i < ss.length; i++) {
+                try {
+                    printTodoData(ss[i], startDate, endDate);
+                }catch(Exception e) {
+                    ErrorHandler.showError(e);
+                }
             }
             
-            phoneCalClient.close();
         }catch(Exception e) {
             ErrorHandler.showError(e);
         }
+    }
+    
+    private void printTodoData(String listName, long startDate, long endDate) throws Exception {
+        PIM pim = PIM.getInstance();
         
+        ToDoList phoneEventList = null;
+        if(listName == null) {
+            phoneEventList = (ToDoList) pim.openPIMList(PIM.TODO_LIST, PIM.READ_WRITE);
+            this.form.append("\nNO LIST NAME\n");
+        } else {
+            phoneEventList = (ToDoList) pim.openPIMList(PIM.TODO_LIST, PIM.READ_WRITE, listName);
+            this.form.append("\nLIST: " + listName + "\n");
+        }
+        Enumeration phoneEvents =  phoneEventList.items(ToDo.DUE, startDate, endDate);
         
+        //Enumeration phoneEvents = phoneCalClient.getPhoneEvents(startDateLong, endDateLong);
+        
+       /* Hashtable phoneEventsByGcalId = new Hashtable();
+        PhoneCalClient phoneCalClient = new PhoneCalClient();
+        Merger merger = new Merger(phoneCalClient, null);*/
+        
+        //enumerate all GCal events in the phone's calendar
+        while (phoneEvents.hasMoreElements()) {
+            try {
+                ToDo phoneEvent = (ToDo)phoneEvents.nextElement();
+                
+                String info =
+                        "name=" + phoneEvent.getString(ToDo.SUMMARY, 0);
+                
+                this.form.append(info + "\n");
+                
+            }catch(Exception e) {
+                ErrorHandler.showError("printCalendarList_while", e);
+            }
+        }
+        phoneEventList.close();
     }
     
     private void bbInfo() {
@@ -172,10 +276,10 @@ public class TestComponent extends MVCComponent  {
             
             int allday = 20000928;//net.rim.blackberry.api.pdap.BlackBerryEvent.ALLDAY;
             addInfo("ALLDAY: ", Integer.toString(allday) + " " + (allday == 20000928 ? "OK" : "NOT 20000928"));
-          
+            
             PIM pim = PIM.getInstance();
             EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
-            addInfo("EventList: ", phoneEventList.getClass().toString());
+           /* addInfo("EventList: ", phoneEventList.getClass().toString());
             
             addInfo("ALLDAY supported?: ", "" + phoneEventList.isSupportedField(allday));
             
@@ -184,21 +288,74 @@ public class TestComponent extends MVCComponent  {
                 addInfo("\ncategory", cs[i]);
             }
             
+            addInfo("\nSUMMARY", Integer.toString(Event.SUMMARY));
+            addInfo("\nSTART", Integer.toString(Event.START));
+            addInfo("\nEND", Integer.toString(Event.END));
+            addInfo("\nNOTE", Integer.toString(Event.NOTE));
+            addInfo("\nLOCATION", Integer.toString(Event.LOCATION));
+            addInfo("\nALARM", Integer.toString(Event.ALARM));*/
+            
+            String s =
+                    "COUNT= " + Integer.toString(RepeatRule.COUNT) +
+                    " INTERVAL= " + Integer.toString(RepeatRule.INTERVAL) +
+                    " END= " + Integer.toString(RepeatRule.END) +
+                    " MONTH_IN_YEAR= " + Integer.toString(RepeatRule.MONTH_IN_YEAR) +
+                    " DAY_IN_WEEK= " + Integer.toString(RepeatRule.DAY_IN_WEEK) +
+                    " WEEK_IN_MONTH= " + Integer.toString(RepeatRule.WEEK_IN_MONTH) +
+                    " DAY_IN_MONTH= " + Integer.toString(RepeatRule.DAY_IN_MONTH) +
+                    " DAY_IN_YEAR= " + Integer.toString(RepeatRule.DAY_IN_YEAR) +
+                    " DAILY= " + Integer.toString(RepeatRule.DAILY) +
+                    " WEEKLY= " + Integer.toString(RepeatRule.WEEKLY) +
+                    " MONTHLY= " + Integer.toString(RepeatRule.MONTHLY) +
+                    " YEARLY= " + Integer.toString(RepeatRule.YEARLY);
+            addInfo("\nVALUES", s);
+            
+            s = "";
+            int[] is = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.DAILY);
+            for(int i = 0; i < is.length; i++) {
+                s += (s.length() == 0 ? "" : ", ") + Integer.toString(is[i]);
+            }
+            addInfo("\nDAILY", s);
+            
+            s = "";
+            is = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.WEEKLY);
+            for(int i = 0; i < is.length; i++) {
+                s += (s.length() == 0 ? "" : ", ") + Integer.toString(is[i]);
+            }
+            addInfo("\nWEEKLY", s);
+            
+            s = "";
+            is = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.MONTHLY);
+            for(int i = 0; i < is.length; i++) {
+                s += (s.length() == 0 ? "" : ", ") + Integer.toString(is[i]);
+            }
+            addInfo("\nMONTHLY", s);
+            
+            s = "";
+            is = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.YEARLY);
+            for(int i = 0; i < is.length; i++) {
+                s += (s.length() == 0 ? "" : ", ") + Integer.toString(is[i]);
+            }
+            addInfo("\nYEARLY", s);
+            
+            
+            phoneEventList.close();
+            
             //Integer.parseInt("+010");
-            Integer.parseInt("-010");
+           /* Integer.parseInt("-010");
             System.out.println("2: " + DateUtil.parseSignedInt("-0100"));
             System.out.println("3: " + DateUtil.parseSignedInt("+0100"));
             System.out.println("4: " + DateUtil.parseSignedInt("-0000"));
             System.out.println("4: " + DateUtil.parseSignedInt("+1"));
-            System.out.println("4: " + DateUtil.parseSignedInt("8"));
+            System.out.println("4: " + DateUtil.parseSignedInt("8"));*/
             
             //PIM pim = PIM.getInstance();
-            String[] ss = pim.listPIMLists(PIM.EVENT_LIST);
+            /*String[] ss = pim.listPIMLists(PIM.TODO_LIST);
             String all = "";
             for(int i = 0; i < ss.length; i++) {
                 all += (all.length() == 0 ? "" : ", ") + ss[i];
             }
-            addInfo("\nlistPIMLists", all);
+            addInfo("\nlistPIMLists", all);*/
             
         }catch(Exception e) {
             ErrorHandler.showError(e);
@@ -210,43 +367,105 @@ public class TestComponent extends MVCComponent  {
             this.form.deleteAll();
             
             PIM pim = PIM.getInstance();
-            EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE, "cat_test");
+            //EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE, "cat_test");
             
-            
-            
-            GCalEvent gCalEvent = new GCalEvent();
+            /*
+             
+            GCalEvent gCalEvent = new GCalEvent();*/
             /*gCalEvent.title = "j2me event(nokia)";
             gCalEvent.startTime = DateUtil.dateToLong("20071214");
             gCalEvent.endTime = DateUtil.dateToLong("20071215");*/
+            /*
+            gCalEvent.title = "ad_1";
+            gCalEvent.startTime = DateUtil.isoDateToLong("2007-12-15T00:00:00");
+            gCalEvent.endTime = 0;//DateUtil.isoDateToLong("2007-12-14T17:00:00");
+             */
             
-            gCalEvent.title = "cat_event";
-            gCalEvent.startTime = DateUtil.isoDateToLong("2007-12-14T16:00:00");
-            gCalEvent.endTime = DateUtil.isoDateToLong("2007-12-14T17:00:00");
+            EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
             
-            PhoneCalClient phoneCalClient = new PhoneCalClient();
+            //PhoneCalClient phoneCalClient = new PhoneCalClient();
+            Event pe = phoneEventList.createEvent();
             
+            pe.addDate(Event.START, Event.ATTR_NONE, DateUtil.isoDateToLong("2007-12-15T10:00:00"));
+            pe.addDate(Event.END, Event.ATTR_NONE, DateUtil.isoDateToLong("2007-12-15T11:00:00"));
+            
+            pe.addString(Event.SUMMARY, Event.ATTR_NONE, "test_rec");
+            
+            
+            RepeatRule rr = new RepeatRule();
+            
+            rr.setInt(RepeatRule.FREQUENCY, RepeatRule.MONTHLY);
+            rr.setInt(RepeatRule.WEEK_IN_MONTH, RepeatRule.THIRD);
+            rr.setInt(RepeatRule.DAY_IN_WEEK, RepeatRule.SATURDAY);
+            rr.setDate(RepeatRule.END, DateUtil.isoDateToLong("2008-08-15T11:00:00"));
+            
+            addInfo("", "**UNO**");
+            printRepeatRule(rr);
+            
+            pe.setRepeat(rr);
+            
+            addInfo("", "**DOS**");
+            printRepeatRule(rr);
+            
+            addInfo("", "**TRES**");
+            printRepeatRule(pe.getRepeat());
+            
+            pe.commit();
+            
+            addInfo("", "**CUATRO**");
+            printRepeatRule(pe.getRepeat());
+
+            phoneEventList.close();
+            
+            /*
+             
             Merger merger = new Merger(phoneCalClient, null);
-            Event phoneEvent = merger.copyToPhoneEvent(gCalEvent);
+            Event phoneEvent = merger.copyToPhoneEvent(gCalEvent);*/
             
-            int[] fields = phoneEvent.getFields();
+           /* int[] fields = phoneEvent.getFields();
             for(int i = 0; i < fields.length; i++) {
                 addInfo("", "\n" + i + " = " + fields[i]);
-            }
+            }*/
             
             /*for(int i = com.nokia.microedition.pim.EventImpl.EXTENDED_FIELD_MIN_VALUE-10000; i < com.nokia.microedition.pim.EventImpl.EXTENDED_FIELD_MIN_VALUE + 99999; i++) {
-                
+             
                 if(phoneEvent.getPIMList().isSupportedField(i)) {
                     addInfo("", "\nsupported: " + i);
                 }
             }*/
             
             //phoneEvent.addToCategory("cat_test");
+            /*
+            phoneCalClient.insertEvent(phoneEvent, "1234567891");
+             
+             
+             
+            gCalEvent = new GCalEvent();
+            gCalEvent.title = "ad_2";
+            gCalEvent.startTime = 0;
+            gCalEvent.endTime = DateUtil.isoDateToLong("2007-12-15T00:00:00");//DateUtil.isoDateToLong("2007-12-14T17:00:00");
+            phoneEvent = merger.copyToPhoneEvent(gCalEvent);
+            phoneCalClient.insertEvent(phoneEvent, "1234567892");
+             */
+            //phoneCalClient.close();
             
-            phoneCalClient.insertEvent(phoneEvent, "1234567890");
-            phoneCalClient.close();
+            addInfo("", "added correctly");
             
         }catch(Exception e) {
+            e.printStackTrace();
             ErrorHandler.showError(e);
+        }
+    }
+    
+    private void printRepeatRule(RepeatRule rr) {
+        
+        int[] setFields = rr.getFields();
+        for(int i = 0; i < setFields.length; i++) {
+            if(setFields[i] == RepeatRule.END) {
+                addInfo(Integer.toString(setFields[i]), Long.toString(rr.getDate(setFields[i])));
+            } else {
+                addInfo(Integer.toString(setFields[i]), Integer.toString(rr.getInt(setFields[i])));
+            }
         }
     }
     

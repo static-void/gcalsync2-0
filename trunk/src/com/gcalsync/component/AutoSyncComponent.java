@@ -27,7 +27,8 @@ import com.gcalsync.cal.SyncEngine;
 import com.gcalsync.cal.gcal.GCalClient;
 import com.gcalsync.cal.gcal.GCalEvent;
 import com.gcalsync.cal.gcal.GCalFeed;
-import com.gcalsync.cal.phonecal.PhoneCalClient;
+import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -90,20 +91,28 @@ public class AutoSyncComponent extends MVCComponent {
         this.form.setCommandListener(this);
     }
     
-    public void handle() {
-        showScreen();
-        setupTimer();
+    public void handle() throws Exception {
+        try {
+            showScreen();
+            setupTimer();
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "handle", e);
+        }
     }
     
     public void commandAction(Command c, Displayable displayable) {
-        if (c.getCommandType() == Command.STOP) {
-            running = false;
-            if(timer != null) {
-                timer.cancel();
+        try {
+            if (c.getCommandType() == Command.STOP) {
+                running = false;
+                if(timer != null) {
+                    timer.cancel();
+                }
+                Components.login.showScreen();
+            } else if(c == CMD_HIDE) {
+                this.display.setCurrent(null);
             }
-            Components.login.showScreen();
-        } else if(c == CMD_HIDE) {
-            this.display.setCurrent(null);
+        }catch(Exception e) {
+            ErrorHandler.showError(e);
         }
     }
     
@@ -157,20 +166,17 @@ public class AutoSyncComponent extends MVCComponent {
         
         //sync the events
         CommitEngine commitEngine = new CommitEngine();
-        PhoneCalClient phoneCalClient = new PhoneCalClient();
-        
-        commitEngine.commitSync(eventForSync[0], eventForSync[1], this.gCalClient, phoneCalClient, this.form);
-        
-        phoneCalClient.close();
+
+        int[] commitStatistics = commitEngine.commitSync(eventForSync[0], eventForSync[1], this.gCalClient, this.form);
         
         //update the statistics
         this.uploadStatistics[0] += this.gCalClient.createdCount;
         this.uploadStatistics[1] += this.gCalClient.updatedCount;
         this.uploadStatistics[2] += this.gCalClient.removedCount;
         
-        this.downloadStatistics[0] += phoneCalClient.createdCount;
-        this.downloadStatistics[1] += phoneCalClient.updatedCount;
-        this.downloadStatistics[2] += phoneCalClient.removedCount;
+        this.downloadStatistics[0] += commitStatistics[0];
+        this.downloadStatistics[1] += commitStatistics[1];
+        this.downloadStatistics[2] += commitStatistics[2];
         
         this.gCalClient.createdCount = 0;
         this.gCalClient.updatedCount = 0;
@@ -181,35 +187,39 @@ public class AutoSyncComponent extends MVCComponent {
      * Executes every one second to update the screen and start the autosync when necessary
      */
     private void timerTaskRun() {
-        if(!running) {
-            //if autosync should not be running then stop
-            timer.cancel();
-        }
-        
-        //update the timer
-        secondsToNextSync--;
-        updateScreenTimer();
-        
-        if(secondsToNextSync <= 0) {
-            //if it is time to sync
-            
-            //stop the timer
-            timer.cancel();
-            timer = null;
-            
-            //reset the last error
-            lastError = null;
-            
-            //sync
-            try {
-                doAutoSync();
-            }catch(Exception e) {
-                lastError = e.getMessage();
+        try {
+            if(!running) {
+                //if autosync should not be running then stop
+                timer.cancel();
             }
-            
-            //restart the timer
-            secondsToNextSync = Store.getOptions().autosyncTime * 60;
-            setupTimer();
+
+            //update the timer
+            secondsToNextSync--;
+            updateScreenTimer();
+
+            if(secondsToNextSync <= 0) {
+                //if it is time to sync
+
+                //stop the timer
+                timer.cancel();
+                timer = null;
+
+                //reset the last error
+                lastError = null;
+
+                //sync
+                try {
+                    doAutoSync();
+                }catch(Exception e) {
+                    lastError = e.getMessage();
+                }
+
+                //restart the timer
+                secondsToNextSync = Store.getOptions().autosyncTime * 60;
+                setupTimer();
+            }
+        }catch(Exception e) {
+            ErrorHandler.showError(e);
         }
     }
     

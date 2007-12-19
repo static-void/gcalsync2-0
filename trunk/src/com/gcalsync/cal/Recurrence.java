@@ -15,14 +15,17 @@
  *
  *
  * * Changes:
- *  --/nov/2007 Agustin 
+ *  --/nov/2007 Agustin
  *      -equals: implemented
  *      -parse: now timezone information is parsed and used to transform start and end time to GMT time
  *      -processTZ_START: added; used in parse to parse timezone information
  *      -compareExceptDatesArray: added; used in equals
+ *   dec/2007 Agstin
+ *      -getRepeatRuleInfo, repeatRuleEquals: added to check if a RepeatRule is set correctly in an Event
  */
 package com.gcalsync.cal;
 
+import com.gcalsync.log.GCalException;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.TimeZone;
@@ -32,6 +35,7 @@ import harmony.java.util.StringTokenizer;
 import com.gcalsync.util.*;
 import com.gcalsync.store.Store;
 import java.util.Calendar;
+import java.util.Hashtable;
 
 /**
  * A crude iCalendar data parser, implemented in the absence of
@@ -62,6 +66,11 @@ public class Recurrence {
     String tzName;              //time zone ID (full length) e.g. "America/New_York"
     RepeatRule repeatRule;      //PIM Repeat Rule
     Date[] exceptDates;         //exception dates
+    
+    
+    boolean phoneSupportsThisRecurrence = true; //tells if this recurrence is compleatly compatible with
+    //the phone (a recurrence is not compleatly compatible if some
+    //fields are not accepted or if there has been any error setting some fields)
     
     /**
      * Constructor
@@ -115,6 +124,15 @@ public class Recurrence {
      */
     public RepeatRule getRepeat() {
         return this.repeatRule;
+    }
+    
+    
+    /**
+     * Tells if the phone supports this recurrence
+     * @return If this phone compleatly supports this recurrence
+     */
+    public boolean doesPhoneSupportsThisRecurrence() {
+        return phoneSupportsThisRecurrence;
     }
     
     /**
@@ -260,7 +278,7 @@ public class Recurrence {
      */
     public void parse(String rule) {
         if (rule == null) throw new IllegalArgumentException("null RepeatRule");
-
+        
         //break string up by newlines or spaces, each line is a field of the rule
         StringTokenizer fields = new StringTokenizer(rule, "\n ");
         StringTokenizer subFields;
@@ -273,12 +291,12 @@ public class Recurrence {
         Calendar dayTimezoneStart = null;
         int stdTimezoneOffset = 0;
         int dayTimezoneOffset = 0;
-
+        
         while (fields.hasMoreTokens()) {
             //break each field into subfields if possible
             field = fields.nextToken();
             subFields = new StringTokenizer(field, ";:");
-
+            
             //process the main fields
             if (field.startsWith("DTSTART")) {
                 if (stdRule == false && dayRule == false)
@@ -384,13 +402,17 @@ public class Recurrence {
      * @returns repeat rule in readable format. String is empty if
      *        repeat rule is not populated.
      */
-    public String toReadableString() {
-        StringBuffer sb = new StringBuffer();
-        
-        getReadableRule(sb);
-        getReadableExceptions(sb);
-        
-        return sb.toString();
+    public String toReadableString() throws Exception {
+        try {
+            StringBuffer sb = new StringBuffer();
+            
+            getReadableRule(sb);
+            getReadableExceptions(sb);
+            
+            return sb.toString();
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "toReadableString", e);
+        }
     }
     
     /**
@@ -561,103 +583,107 @@ public class Recurrence {
      *
      * @param sb string buffer to which repeat rule is appended
      */
-    void getReadableRule(StringBuffer sb) {
-        if (this.frequency != 0) {
-            //INTERVAL
-            sb.append("Every ");
-            
-            if (this.interval > 1) sb.append(this.interval + " ");
-            
-            switch (this.frequency) {
-                case RepeatRule.YEARLY: sb.append("year"); break;
-                case RepeatRule.MONTHLY: sb.append("month"); break;
-                case RepeatRule.WEEKLY: sb.append("week"); break;
-                case RepeatRule.DAILY: sb.append("day"); break;
-                default: sb.append("time"); break;
-            }
-            
-            if (this.interval > 1) sb.append("s");
-            
-            //COUNT
-            if (this.count != 0) {
-                sb.append("; " + this.count + " time");
-                if (this.count > 1) sb.append("s");
-            }
-            
-            //BYDAY
-            if (this.dayInWeek != 0) {
-                Vector dayVector = new Vector();
+    void getReadableRule(StringBuffer sb) throws Exception {
+        try {
+            if (this.frequency != 0) {
+                //INTERVAL
+                sb.append("Every ");
                 
-                //get list of days into vector
-                if ((this.dayInWeek & RepeatRule.SUNDAY)!=0) dayVector.addElement("SU");
-                if ((this.dayInWeek & RepeatRule.MONDAY)!=0) dayVector.addElement("MO");
-                if ((this.dayInWeek & RepeatRule.TUESDAY)!=0) dayVector.addElement("TU");
-                if ((this.dayInWeek & RepeatRule.WEDNESDAY)!=0) dayVector.addElement("WE");
-                if ((this.dayInWeek & RepeatRule.THURSDAY)!=0) dayVector.addElement("TH");
-                if ((this.dayInWeek & RepeatRule.FRIDAY)!=0) dayVector.addElement("FR");
-                if ((this.dayInWeek & RepeatRule.SATURDAY)!=0) dayVector.addElement("SA");
+                if (this.interval > 1) sb.append(this.interval + " ");
                 
-                //assemble vector elements into comma separated list
-                if (dayVector.size() != 0) sb.append("; on ");
-                for (int i=0; i<dayVector.size(); i++) {
-                    if (i!=0) sb.append(",");
-                    sb.append((String)dayVector.elementAt(i));
-                }
-            }
-            
-            //BYWEEK
-            if (this.weekInMonth != 0) {
-                sb.append("; on the ");
-                
-                switch (this.weekInMonth) {
-                    case RepeatRule.FIRST: sb.append("1st"); break;
-                    case RepeatRule.SECOND: sb.append("2nd"); break;
-                    case RepeatRule.THIRD: sb.append("3rd"); break;
-                    case RepeatRule.FOURTH: sb.append("4th"); break;
-                    case RepeatRule.FIFTH: sb.append("5th"); break;
-                    case RepeatRule.SECONDLAST: sb.append("2nd to last"); break;
-                    case RepeatRule.THIRDLAST: sb.append("3rd to last"); break;
-                    case RepeatRule.FOURTHLAST: sb.append("4th to last"); break;
-                    case RepeatRule.FIFTHLAST: sb.append("5th to last"); break;
-                    default: sb.append("?"); break;
+                switch (this.frequency) {
+                    case RepeatRule.YEARLY: sb.append("year"); break;
+                    case RepeatRule.MONTHLY: sb.append("month"); break;
+                    case RepeatRule.WEEKLY: sb.append("week"); break;
+                    case RepeatRule.DAILY: sb.append("day"); break;
+                    default: sb.append("time"); break;
                 }
                 
-                sb.append(" week");
-            }
-            
-            //BYMONTH
-            if (this.monthInYear != 0) {
-                Vector moVector = new Vector();
+                if (this.interval > 1) sb.append("s");
                 
-                //get list of months into vector
-                if ((this.monthInYear & RepeatRule.JANUARY)!=0) moVector.addElement("Jan");
-                if ((this.monthInYear & RepeatRule.FEBRUARY)!=0) moVector.addElement("Feb");
-                if ((this.monthInYear & RepeatRule.MARCH)!=0) moVector.addElement("Mar");
-                if ((this.monthInYear & RepeatRule.APRIL)!=0) moVector.addElement("Apr");
-                if ((this.monthInYear & RepeatRule.MAY)!=0) moVector.addElement("May");
-                if ((this.monthInYear & RepeatRule.JUNE)!=0) moVector.addElement("Jun");
-                if ((this.monthInYear & RepeatRule.JULY)!=0) moVector.addElement("Jul");
-                if ((this.monthInYear & RepeatRule.AUGUST)!=0) moVector.addElement("Aug");
-                if ((this.monthInYear & RepeatRule.SEPTEMBER)!=0) moVector.addElement("Sep");
-                if ((this.monthInYear & RepeatRule.OCTOBER)!=0) moVector.addElement("Oct");
-                if ((this.monthInYear & RepeatRule.NOVEMBER)!=0) moVector.addElement("Nov");
-                if ((this.monthInYear & RepeatRule.DECEMBER)!=0) moVector.addElement("Dec");
+                //COUNT
+                if (this.count != 0) {
+                    sb.append("; " + this.count + " time");
+                    if (this.count > 1) sb.append("s");
+                }
                 
-                //assemble vector elements into comma separated list
-                sb.append("; on ");
-                for (int i=0; i<moVector.size(); i++) {
-                    if (i != 0) sb.append(", ");
-                    sb.append((String)moVector.elementAt(i));
+                //BYDAY
+                if (this.dayInWeek != 0) {
+                    Vector dayVector = new Vector();
+                    
+                    //get list of days into vector
+                    if ((this.dayInWeek & RepeatRule.SUNDAY)!=0) dayVector.addElement("SU");
+                    if ((this.dayInWeek & RepeatRule.MONDAY)!=0) dayVector.addElement("MO");
+                    if ((this.dayInWeek & RepeatRule.TUESDAY)!=0) dayVector.addElement("TU");
+                    if ((this.dayInWeek & RepeatRule.WEDNESDAY)!=0) dayVector.addElement("WE");
+                    if ((this.dayInWeek & RepeatRule.THURSDAY)!=0) dayVector.addElement("TH");
+                    if ((this.dayInWeek & RepeatRule.FRIDAY)!=0) dayVector.addElement("FR");
+                    if ((this.dayInWeek & RepeatRule.SATURDAY)!=0) dayVector.addElement("SA");
+                    
+                    //assemble vector elements into comma separated list
+                    if (dayVector.size() != 0) sb.append("; on ");
+                    for (int i=0; i<dayVector.size(); i++) {
+                        if (i!=0) sb.append(",");
+                        sb.append((String)dayVector.elementAt(i));
+                    }
+                }
+                
+                //BYWEEK
+                if (this.weekInMonth != 0) {
+                    sb.append("; on the ");
+                    
+                    switch (this.weekInMonth) {
+                        case RepeatRule.FIRST: sb.append("1st"); break;
+                        case RepeatRule.SECOND: sb.append("2nd"); break;
+                        case RepeatRule.THIRD: sb.append("3rd"); break;
+                        case RepeatRule.FOURTH: sb.append("4th"); break;
+                        case RepeatRule.FIFTH: sb.append("5th"); break;
+                        case RepeatRule.SECONDLAST: sb.append("2nd to last"); break;
+                        case RepeatRule.THIRDLAST: sb.append("3rd to last"); break;
+                        case RepeatRule.FOURTHLAST: sb.append("4th to last"); break;
+                        case RepeatRule.FIFTHLAST: sb.append("5th to last"); break;
+                        default: sb.append("?"); break;
+                    }
+                    
+                    sb.append(" week");
+                }
+                
+                //BYMONTH
+                if (this.monthInYear != 0) {
+                    Vector moVector = new Vector();
+                    
+                    //get list of months into vector
+                    if ((this.monthInYear & RepeatRule.JANUARY)!=0) moVector.addElement("Jan");
+                    if ((this.monthInYear & RepeatRule.FEBRUARY)!=0) moVector.addElement("Feb");
+                    if ((this.monthInYear & RepeatRule.MARCH)!=0) moVector.addElement("Mar");
+                    if ((this.monthInYear & RepeatRule.APRIL)!=0) moVector.addElement("Apr");
+                    if ((this.monthInYear & RepeatRule.MAY)!=0) moVector.addElement("May");
+                    if ((this.monthInYear & RepeatRule.JUNE)!=0) moVector.addElement("Jun");
+                    if ((this.monthInYear & RepeatRule.JULY)!=0) moVector.addElement("Jul");
+                    if ((this.monthInYear & RepeatRule.AUGUST)!=0) moVector.addElement("Aug");
+                    if ((this.monthInYear & RepeatRule.SEPTEMBER)!=0) moVector.addElement("Sep");
+                    if ((this.monthInYear & RepeatRule.OCTOBER)!=0) moVector.addElement("Oct");
+                    if ((this.monthInYear & RepeatRule.NOVEMBER)!=0) moVector.addElement("Nov");
+                    if ((this.monthInYear & RepeatRule.DECEMBER)!=0) moVector.addElement("Dec");
+                    
+                    //assemble vector elements into comma separated list
+                    sb.append("; on ");
+                    for (int i=0; i<moVector.size(); i++) {
+                        if (i != 0) sb.append(", ");
+                        sb.append((String)moVector.elementAt(i));
+                    }
+                }
+                
+                //UNTIL
+                if (this.expirationDate != 0) {
+                    sb.append("; until " +
+                            DateUtil.formatTimeGMT(this.expirationDate+Store.getOptions().uploadTimeZoneOffset,
+                            true,
+                            DateUtil.MONTH_MASK | DateUtil.DAY_MASK | DateUtil.YEAR_MASK));
                 }
             }
-            
-            //UNTIL
-            if (this.expirationDate != 0) {
-                sb.append("; until " +
-                        DateUtil.formatTimeGMT(this.expirationDate+Store.getOptions().uploadTimeZoneOffset,
-                        true,
-                        DateUtil.MONTH_MASK | DateUtil.DAY_MASK | DateUtil.YEAR_MASK));
-            }
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "getReadableRule", e);
         }
     }
     
@@ -705,17 +731,21 @@ public class Recurrence {
      *
      * @param sb string buffer to which exception dates are appended
      */
-    void getReadableExceptions(StringBuffer sb) {
-        copyExceptions();
-        if (this.exceptDates != null && this.exceptDates.length != 0) {
-            sb.append("; except on ");
-            
-            for (int i=0; i<this.exceptDates.length; i++) {
-                if (i != 0) sb.append(", ");
-                sb.append(DateUtil.formatTime(this.exceptDates[i].getTime()+Store.getOptions().uploadTimeZoneOffset,
-                        true,
-                        DateUtil.MONTH_MASK | DateUtil.DAY_MASK | DateUtil.YEAR_MASK));
+    void getReadableExceptions(StringBuffer sb) throws Exception {
+        try {
+            copyExceptions();
+            if (this.exceptDates != null && this.exceptDates.length != 0) {
+                sb.append("; except on ");
+                
+                for (int i=0; i<this.exceptDates.length; i++) {
+                    if (i != 0) sb.append(", ");
+                    sb.append(DateUtil.formatTime(this.exceptDates[i].getTime()+Store.getOptions().uploadTimeZoneOffset,
+                            true,
+                            DateUtil.MONTH_MASK | DateUtil.DAY_MASK | DateUtil.YEAR_MASK));
+                }
             }
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "getReadableExceptions", e);
         }
     }
     
@@ -1047,12 +1077,12 @@ public class Recurrence {
                         this.frequency =  RepeatRule.DAILY;
                         this.repeatRule.setInt(RepeatRule.FREQUENCY, RepeatRule.DAILY);
                     }
-                } catch (Exception e){}
+                } catch (Exception e){ phoneSupportsThisRecurrence = false; }
             } else if (subField.startsWith("INTERVAL")) {
                 try {
                     this.interval = Integer.parseInt(subField.substring(subField.indexOf("=") + 1));
                     this.repeatRule.setInt(RepeatRule.INTERVAL, this.interval);
-                } catch (Exception e){}
+                } catch (Exception e){ phoneSupportsThisRecurrence = false; }
             }
             //parse expiration date of event recurrence
             else if (subField.startsWith("UNTIL")) {
@@ -1068,7 +1098,7 @@ public class Recurrence {
                 mo = getFieldValue(subField, "BYMONTH");
                 
                 if (mo != null) {
-                    try { this.repeatRule.setInt(RepeatRule.MONTH_IN_YEAR, Integer.parseInt(mo)); } catch (Exception e) {}
+                    try { this.repeatRule.setInt(RepeatRule.MONTH_IN_YEAR, Integer.parseInt(mo)); } catch (Exception e) { phoneSupportsThisRecurrence = false; }
                 }
             } else if (subField.startsWith("BYDAY")) {
                 //get days of week that event occurs
@@ -1097,7 +1127,7 @@ public class Recurrence {
                     
                     //set week in month
                     if (this.weekInMonth != 0) this.repeatRule.setInt(RepeatRule.WEEK_IN_MONTH, this.weekInMonth);
-                } catch (Exception e) { }
+                } catch (Exception e) { phoneSupportsThisRecurrence = false; }
             }
         }
     }
@@ -1249,7 +1279,7 @@ public class Recurrence {
         }
         
         //verify that the except dates are alll the same
-
+        
         //if the except dates are null or empty then they equal
         boolean exceptDatesEquals =
                 (this.exceptDates == null && o.exceptDates == null) ||
@@ -1259,7 +1289,7 @@ public class Recurrence {
         if(exceptDatesEquals) {
             return true;
         }
-
+        
         //if the except dates are not null or empty then verify that they are the same
         return compareExceptDatesArray(this.exceptDates, o.exceptDates) && compareExceptDatesArray(o.exceptDates, this.exceptDates);
     }
@@ -1287,4 +1317,67 @@ public class Recurrence {
         
         return true;
     }
+
+    public static Hashtable getRepeatRuleInfo(RepeatRule rr) {
+        if(rr == null) {
+            return null;
+        }
+        
+        Hashtable result = new Hashtable();
+        
+        int[] fields = rr.getFields();
+        
+        for(int i = 0; i < fields.length; i++) {
+            
+            
+            Integer key = new Integer(fields[i]);
+            if(fields[i] == RepeatRule.END) {
+                result.put(key, new Long(rr.getDate(fields[i])));
+            } else {
+                result.put(key, new Integer(rr.getInt(fields[i])));
+            }
+        }
+        
+        return result;
+    }
+    
+    public static boolean repeatRuleEquals(RepeatRule rr, Hashtable rrInfo) {
+        if(rr == null && rrInfo == null) {
+            return true;
+        } else if(rr == null || rrInfo == null) {
+            return false;
+        } else {
+            int[] fields = rr.getFields();
+            
+            if(fields.length != rrInfo.size()) {
+                return false;
+            }
+            
+            for(int i = 0; i < fields.length; i++) {
+                //get the value from the other repeat rule
+                Object rrInfoValue = rrInfo.get(new Integer(fields[i]));
+                
+                //check if the other repeat rule has the field
+                if(rrInfoValue == null) {
+                    return false;
+                }
+                
+                //check if the other repeat rule field value and this repeat rule
+                //field value equials
+                if(fields[i] == RepeatRule.END) {
+                    if(rr.getDate(fields[i]) != ((Long)rrInfoValue).longValue() ) {
+                        return false;
+                    }
+                } else {
+                    if(rr.getInt(fields[i]) != ((Integer)rrInfoValue).intValue() ) {
+                        return false;
+                    }
+                }
+            }
+            
+            //no differences found
+            return true;
+        }
+    }
+    
 }

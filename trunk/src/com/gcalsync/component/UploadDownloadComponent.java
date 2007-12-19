@@ -15,6 +15,7 @@
 */
 package com.gcalsync.component;
 
+import com.gcalsync.log.ErrorHandler;
 import com.gcalsync.option.Options;
 import com.gcalsync.store.Store;
 
@@ -69,14 +70,18 @@ public class UploadDownloadComponent extends MVCComponent {
     }
 
     public void commandAction(Command command, Displayable displayable) {
-        if (command.getLabel().equals(saveCommand.getLabel())) {
-            Options options = Store.getOptions();
-            options.upload = choices.isSelected(0);
-            options.download = choices.isSelected(1);
-			options.preview = choices.isSelected(2);
-			options.downloadAllCalendars = choices.isSelected(3);
-            Store.saveOptions();
+        try {
+            if (command.getLabel().equals(saveCommand.getLabel())) {
+                Options options = Store.getOptions();
+                options.upload = choices.isSelected(0);
+                options.download = choices.isSelected(1);
+                            options.preview = choices.isSelected(2);
+                            options.downloadAllCalendars = choices.isSelected(3);
+                Store.saveOptions();
+            }
+            Components.options.showScreen();
+        }catch(Throwable t) {
+            ErrorHandler.showError(t);
         }
-        Components.options.showScreen();
     }
 }

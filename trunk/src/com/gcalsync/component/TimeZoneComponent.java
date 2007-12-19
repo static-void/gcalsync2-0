@@ -15,6 +15,8 @@
 */
 package com.gcalsync.component;
 
+import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import javax.microedition.lcdui.*;
 import com.gcalsync.store.Store;
 import com.gcalsync.option.Options;
@@ -52,80 +54,96 @@ public class TimeZoneComponent extends MVCComponent {
     protected void initModel() {
     }
 
-    protected void createView() {
-        form = new Form("Time zone adjustment");
+    protected void createView() throws Exception {
+        try {
+            form = new Form("Time zone adjustment");
 
-        /*useGCalTimeZone = new ChoiceGroup("", ChoiceGroup.MULTIPLE);
-        useGCalTimeZone.append("Use GCal time zone", null);
-        useGCalTimeZone.setSelectedIndex(0, true);
-        form.append(useGCalTimeZone);*/
+            /*useGCalTimeZone = new ChoiceGroup("", ChoiceGroup.MULTIPLE);
+            useGCalTimeZone.append("Use GCal time zone", null);
+            useGCalTimeZone.setSelectedIndex(0, true);
+            form.append(useGCalTimeZone);*/
 
-        downloadValidationMessage = new StringItem("", "", StringItem.PLAIN);
-        //downloadValidationMessage.setFont(Font.getFont(Font.STYLE_BOLD));
-        form.append(downloadValidationMessage);
+            downloadValidationMessage = new StringItem("", "", StringItem.PLAIN);
+            //downloadValidationMessage.setFont(Font.getFont(Font.STYLE_BOLD));
+            form.append(downloadValidationMessage);
 
-        downloadAdjustment = new TextField("Download adjustment", "+00:00", 6, TextField.NON_PREDICTIVE);
-        downloadAdjustment.setInitialInputMode("IS_FULLWIDTH_DIGITS");
-        form.append(downloadAdjustment);
+            downloadAdjustment = new TextField("Download adjustment", "+00:00", 6, TextField.NON_PREDICTIVE);
+            downloadAdjustment.setInitialInputMode("IS_FULLWIDTH_DIGITS");
+            form.append(downloadAdjustment);
 
-        uploadValidationMessage = new StringItem("", "", StringItem.PLAIN);
-        //uploadValidationMessage.setFont(Font.getFont(Font.STYLE_BOLD));
-        form.append(uploadValidationMessage);
+            uploadValidationMessage = new StringItem("", "", StringItem.PLAIN);
+            //uploadValidationMessage.setFont(Font.getFont(Font.STYLE_BOLD));
+            form.append(uploadValidationMessage);
 
-        uploadAdjustment = new TextField("Upload adjustment", "+00:00", 6, TextField.NON_PREDICTIVE);
-        uploadAdjustment.setInitialInputMode("IS_FULLWIDTH_DIGITS");
-        form.append(uploadAdjustment);
+            uploadAdjustment = new TextField("Upload adjustment", "+00:00", 6, TextField.NON_PREDICTIVE);
+            uploadAdjustment.setInitialInputMode("IS_FULLWIDTH_DIGITS");
+            form.append(uploadAdjustment);
 
-        saveCommand = new Command("Save", Command.OK, 1);
-        form.addCommand(saveCommand);
+            saveCommand = new Command("Save", Command.OK, 1);
+            form.addCommand(saveCommand);
 
-        Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
-        form.addCommand(cancelCommand);
+            Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
+            form.addCommand(cancelCommand);
 
-        form.setCommandListener(this);
-        updateView();
+            form.setCommandListener(this);
+            updateView();
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "createView", e);
+        }
     }
 
-    protected void updateView() {
-        Options options = Store.getOptions();
-        downloadAdjustment.setString(longOffsetToString(options.downloadTimeZoneOffset));
-        uploadAdjustment.setString(longOffsetToString(options.uploadTimeZoneOffset));
+    protected void updateView() throws Exception {
+        try {
+            Options options = Store.getOptions();
+            downloadAdjustment.setString(longOffsetToString(options.downloadTimeZoneOffset));
+            uploadAdjustment.setString(longOffsetToString(options.uploadTimeZoneOffset));
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "updateView", e);
+        }
     }
 
     public void commandAction(Command command, Displayable displayable) {
-        boolean showNext = false;
-        if (command.getLabel().equals(saveCommand.getLabel())) {
-            if (setOptions()) {
-                Store.saveOptions();
+        try {
+            boolean showNext = false;
+            if (command.getLabel().equals(saveCommand.getLabel())) {
+                if (setOptions()) {
+                    Store.saveOptions();
+                    showNext = true;
+                }
+            } else if (command.getCommandType() == Command.CANCEL) {
                 showNext = true;
             }
-        } else if (command.getCommandType() == Command.CANCEL) {
-            showNext = true;
-        }
-        if (showNext) {
-            Components.options.showScreen();
+            if (showNext) {
+                Components.options.showScreen();
+            }
+        }catch(Throwable t) {
+            ErrorHandler.showError("Error [TimeZoneComponent]", t);
         }
     }
 
-    private boolean setOptions() {
-        boolean success = true;
-        Options options = Store.getOptions();
-        //options.useGCalTimeZone = useGCalTimeZone.isSelected(0);
+    private boolean setOptions() throws Exception {
         try {
-            options.downloadTimeZoneOffset = getOffset(downloadAdjustment);
-            downloadValidationMessage.setText("");
-        } catch (Exception e) {
-            success = false;
-            downloadValidationMessage.setText(VALIDATION_MESSAGE);
+            boolean success = true;
+            Options options = Store.getOptions();
+            //options.useGCalTimeZone = useGCalTimeZone.isSelected(0);
+            try {
+                options.downloadTimeZoneOffset = getOffset(downloadAdjustment);
+                downloadValidationMessage.setText("");
+            } catch (Exception e) {
+                success = false;
+                downloadValidationMessage.setText(VALIDATION_MESSAGE);
+            }
+            try {
+                options.uploadTimeZoneOffset = getOffset(uploadAdjustment);
+                uploadValidationMessage.setText("");
+            } catch (Exception e) {
+                success = false;
+                uploadValidationMessage.setText(VALIDATION_MESSAGE);
+            }
+            return success;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "setOptions", e);
         }
-        try {
-            options.uploadTimeZoneOffset = getOffset(uploadAdjustment);
-            uploadValidationMessage.setText("");
-        } catch (Exception e) {
-            success = false;
-            uploadValidationMessage.setText(VALIDATION_MESSAGE);
-        }
-        return success;
     }
 
     private long getOffset(TextField adjustment) {

@@ -15,6 +15,8 @@
 */
 package com.gcalsync.component;
 
+import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.List;
@@ -53,39 +55,47 @@ public class OptionsComponent extends MVCComponent {
     protected void updateView() {
     }
 
-	public void showScreen(MVCComponent nextDisplayable)
+	public void showScreen(MVCComponent nextDisplayable) throws Exception
 	{
+            try {
 		nextDisplay = nextDisplayable;
 		showScreen();
+            }catch(Exception e) {
+                throw new GCalException(this.getClass(), "showScreen", e);
+            }
 	}
 
     public void commandAction(Command command, Displayable displayable) {
-        if (command.getCommandType() == Command.CANCEL) {
+        try {
+            if (command.getCommandType() == Command.CANCEL) {
 
-			if (nextDisplay == null) 
-				Components.login.showScreen(false);
-			else
-				nextDisplay.showScreen(false);
+                            if (nextDisplay == null) 
+                                    Components.login.showScreen(false);
+                            else
+                                    nextDisplay.showScreen(false);
 
-        } else if (command == List.SELECT_COMMAND) {
-            int choice = menu.getSelectedIndex();
-            switch (choice) {
-                case 0:
-                    Components.period.handle();
-                    break;
-                case 1:
-                    Components.timeZone.handle();
-                    break;
-                case 2:
-                    Components.uploadDownload.handle();
-                    break;
-                case 3:
-                    Components.autosyncPeriodComponent.handle();
-                    break;
-                case 4:
-                    Components.resetOptions.handle();
-                    break;
+            } else if (command == List.SELECT_COMMAND) {
+                int choice = menu.getSelectedIndex();
+                switch (choice) {
+                    case 0:
+                        Components.period.handle();
+                        break;
+                    case 1:
+                        Components.timeZone.handle();
+                        break;
+                    case 2:
+                        Components.uploadDownload.handle();
+                        break;
+                    case 3:
+                        Components.autosyncPeriodComponent.handle();
+                        break;
+                    case 4:
+                        Components.resetOptions.handle();
+                        break;
+                }
             }
+        }catch(Exception e) {
+            ErrorHandler.showError(e);
         }
     }
 

@@ -41,49 +41,65 @@ public class PeriodComponent extends MVCComponent {
         // done in constructor
     }
 
-    protected void createView() {
-        form = new Form("Sync period");
-        pastDaysField = new TextField("Past days", Integer.toString(Store.getOptions().pastDays), 4, TextField.NUMERIC);
-        futureDaysField = new TextField("Future days", Integer.toString(Store.getOptions().futureDays), 4, TextField.NUMERIC);
-        form.append(pastDaysField);
-        form.append(futureDaysField);
-        saveCommand = new Command("Save", Command.OK, 1);
-        Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
-        form.addCommand(saveCommand);
-        form.addCommand(cancelCommand);
-        form.setCommandListener(this);
+    protected void createView() throws Exception {
+        try {
+            form = new Form("Sync period");
+            pastDaysField = new TextField("Past days", Integer.toString(Store.getOptions().pastDays), 4, TextField.NUMERIC);
+            futureDaysField = new TextField("Future days", Integer.toString(Store.getOptions().futureDays), 4, TextField.NUMERIC);
+            form.append(pastDaysField);
+            form.append(futureDaysField);
+            saveCommand = new Command("Save", Command.OK, 1);
+            Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
+            form.addCommand(saveCommand);
+            form.addCommand(cancelCommand);
+            form.setCommandListener(this);
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "createView", e);
+        }
     }
 
-    protected void updateView() {
-        pastDaysField.setString(Integer.toString(Store.getOptions().pastDays));
-        futureDaysField.setString(Integer.toString(Store.getOptions().futureDays));
+    protected void updateView() throws Exception {
+        try {
+            pastDaysField.setString(Integer.toString(Store.getOptions().pastDays));
+            futureDaysField.setString(Integer.toString(Store.getOptions().futureDays));
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "updateView", e);
+        }
     }
 
     public void commandAction(Command command, Displayable displayable) {
-        if (command.getLabel().equals(saveCommand.getLabel())) {
-            if (setOptions()) {
-                Store.saveOptions();
+        try {
+            if (command.getLabel().equals(saveCommand.getLabel())) {
+                if (setOptions()) {
+                    Store.saveOptions();
+                    Components.options.showScreen();
+                }
+            } else if (command.getCommandType() == Command.CANCEL) {
                 Components.options.showScreen();
             }
-        } else if (command.getCommandType() == Command.CANCEL) {
-            Components.options.showScreen();
+        }catch(Throwable e) {
+            ErrorHandler.showError(e);
         }
     }
 
-    private boolean setOptions() {
+    private boolean setOptions() throws Exception {
         try {
-            Store.getOptions().pastDays = Integer.parseInt(pastDaysField.getString());
-        } catch (NumberFormatException e) {
-            ErrorHandler.showError("Past days must be a number", e);
-            return false;
+            try {
+                Store.getOptions().pastDays = Integer.parseInt(pastDaysField.getString());
+            } catch (NumberFormatException e) {
+                ErrorHandler.showError("Past days must be a number", e);
+                return false;
+            }
+            try {
+                Store.getOptions().futureDays = Integer.parseInt(futureDaysField.getString());
+            } catch (NumberFormatException e) {
+                ErrorHandler.showError("future days must be a number", e);
+                return false;
+            }
+            return true;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "setOptions", e);
         }
-        try {
-            Store.getOptions().futureDays = Integer.parseInt(futureDaysField.getString());
-        } catch (NumberFormatException e) {
-            ErrorHandler.showError("future days must be a number", e);
-            return false;
-        }
-        return true;
     }
 
 }

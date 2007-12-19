@@ -141,28 +141,32 @@ public class GCalClient {
         }
     }
     
-    public GCalFeed[] downloadFeeds() {
-        byte[] feedsBytes;
-        GCalFeed[] feeds;
-        Options options = Store.getOptions();
-        
-        //try Google account first and if that fails, try Hosted Domain account
-        update("Downloading calendar list...");
-        feedsBytes = HttpUtil.sendRequest(FEEDS_URL_PREFIX + options.username + "%40gmail.com", HttpsConnection.GET, null, authorizationHeader);
-//#ifdef DEBUG_INFO
-//#         System.out.println("Downloaded: " + new String(feedsBytes));
-//#endif
-        feeds = gCalParser.parseFeeds(feedsBytes);
-        
-        if (feeds != null && feeds.length == 0){
-            feedsBytes = HttpUtil.sendRequest(FEEDS_URL_PREFIX + options.username, HttpsConnection.GET, null, authorizationHeader);
-//#ifdef DEBUG_INFO
-//# 			System.out.println("Downloaded (HostedDomain): " + new String(feedsBytes));
-//#endif
+    public GCalFeed[] downloadFeeds() throws Exception {
+        try {
+            byte[] feedsBytes;
+            GCalFeed[] feeds;
+            Options options = Store.getOptions();
+
+            //try Google account first and if that fails, try Hosted Domain account
+            update("Downloading calendar list...");
+            feedsBytes = HttpUtil.sendRequest(FEEDS_URL_PREFIX + options.username + "%40gmail.com", HttpsConnection.GET, null, authorizationHeader);
+    //#ifdef DEBUG_INFO
+    //#         System.out.println("Downloaded: " + new String(feedsBytes));
+    //#endif
             feeds = gCalParser.parseFeeds(feedsBytes);
+
+            if (feeds != null && feeds.length == 0){
+                feedsBytes = HttpUtil.sendRequest(FEEDS_URL_PREFIX + options.username, HttpsConnection.GET, null, authorizationHeader);
+    //#ifdef DEBUG_INFO
+    //# 			System.out.println("Downloaded (HostedDomain): " + new String(feedsBytes));
+    //#endif
+                feeds = gCalParser.parseFeeds(feedsBytes);
+            }
+
+            return feeds;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "downloadFeeds", e);
         }
-        
-        return feeds;
     }
     
     public void setCred(String usernm, String passwd) {
@@ -292,21 +296,28 @@ public class GCalClient {
         }
     }
     
-    public String createEvent(GCalEvent gCalEvent) {
-        String gCalId = uploadEvent(gCalEvent, "POST", DEFAULT_CALENDAR_URL);
-        if (gCalId != null) {
-            createdCount++;
+    public String createEvent(GCalEvent gCalEvent) throws Exception {
+        try {
+            String gCalId = uploadEvent(gCalEvent, "POST", DEFAULT_CALENDAR_URL);
+            if (gCalId != null) {
+                createdCount++;
+            }
+            return gCalId;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "createEvent", e);
         }
-        return gCalId;
     }
     
-    public String updateEvent(GCalEvent gCalEvent) {
-        
-        String gCalId = uploadEvent(gCalEvent, "PUT", gCalEvent.editLink);
-        if (gCalId != null) {
-            updatedCount++;
+    public String updateEvent(GCalEvent gCalEvent) throws Exception {
+        try {
+            String gCalId = uploadEvent(gCalEvent, "PUT", gCalEvent.editLink);
+            if (gCalId != null) {
+                updatedCount++;
+            }
+            return gCalId;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "updateEvent", e);
         }
-        return gCalId;
         
         //note: this request fails because the uploadEvent() is posting to
         //the default calendar URL when it should be posting to the event's
@@ -316,46 +327,54 @@ public class GCalClient {
         //return null;
     }
     
-    public String removeEvent(GCalEvent gCalEvent) {
-        String gCalId = uploadEvent(gCalEvent, "DELETE", gCalEvent.editLink);
-        if (gCalId != null) {
-            removedCount++;
+    public String removeEvent(GCalEvent gCalEvent) throws Exception {
+        try {
+            String gCalId = uploadEvent(gCalEvent, "DELETE", gCalEvent.editLink);
+            if (gCalId != null) {
+                removedCount++;
+            }
+            return gCalId;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "removeEvent", e);
         }
-        return gCalId;
     }
     
-    private String uploadEvent(GCalEvent gCalEvent, String method, String url) {
-        String gCalId = null;
-        int result;
-        if (gCalEvent != null) {
-            String eventAsXml = gCalEvent.asXML();
-            
-            update("Uploading \"" + gCalEvent.title + "\"...");
-            
-//#ifdef DEBUG_INFO
-//#             System.out.println("Uploading gCalEvent using " + method + ":");
-//#             System.out.println(eventAsXml);
-//#endif
-            
-            byte[] uploadResponse = HttpUtil.sendAtomRequest(url, method, eventAsXml, authorizationHeader);
-            result = HttpUtil.getLastResponseCode();
-            if (result == HttpConnection.HTTP_OK || result == HttpConnection.HTTP_CREATED) update("OK");
-            else update("ERR: (" + result + ") " + HttpUtil.getLastResponseMsg());
-            
-//#ifdef DEBUG_INFO
-//#             System.out.println("Upload response:");
-//#             System.out.println(new String(uploadResponse));
-//#endif
-            
-            if (!"GET".equals(method)) {
-                try {
-                    gCalId = gCalParser.parseUploadResponse(uploadResponse);
-                } catch (IOException e) {
-                    ErrorHandler.showError("Unexpected reply from Google Calendar, gCalEvent may not have been saved", e);
+    private String uploadEvent(GCalEvent gCalEvent, String method, String url) throws Exception {
+        try {
+            String gCalId = null;
+            int result;
+            if (gCalEvent != null) {
+                String eventAsXml = gCalEvent.asXML();
+
+                update("Uploading \"" + gCalEvent.title + "\"...");
+
+    //#ifdef DEBUG_INFO
+    //#             System.out.println("Uploading gCalEvent using " + method + ":");
+    //#             System.out.println(eventAsXml);
+    //#endif
+
+                byte[] uploadResponse = HttpUtil.sendAtomRequest(url, method, eventAsXml, authorizationHeader);
+                result = HttpUtil.getLastResponseCode();
+                if (result == HttpConnection.HTTP_OK || result == HttpConnection.HTTP_CREATED) update("OK");
+                else update("ERR: (" + result + ") " + HttpUtil.getLastResponseMsg());
+
+    //#ifdef DEBUG_INFO
+    //#             System.out.println("Upload response:");
+    //#             System.out.println(new String(uploadResponse));
+    //#endif
+
+                if (!"GET".equals(method)) {
+                    try {
+                        gCalId = gCalParser.parseUploadResponse(uploadResponse);
+                    } catch (IOException e) {
+                        ErrorHandler.showError("Unexpected reply from Google Calendar, gCalEvent may not have been saved", e);
+                    }
                 }
             }
+            return gCalId;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "uploadEvent", e);
         }
-        return gCalId;
     }
     
     static public GCalEvent[] eventVectorToArray(Vector vector) {

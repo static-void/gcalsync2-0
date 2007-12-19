@@ -84,8 +84,9 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
      * Creates a new form and updates the view with a fresh calendar
      * list
 	 */
-	protected void createView()
+	protected void createView() throws Exception 
 	{
+            try {
 		String title = Store.getOptions().username;
 
 		//get username and append "Calendars"
@@ -94,6 +95,9 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 
 		form = new Form(title);
 		downloadFeeds();
+            }catch(Exception e) {
+                throw new GCalException(this.getClass(), "createView", e);
+            }
 	}
 
 	/**
@@ -214,7 +218,7 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 				}
 			}
 		}
-		catch (Exception e)
+		catch (Throwable e)
 		{
 			ErrorHandler.showError("Failed to get calendar list", e);
 		}

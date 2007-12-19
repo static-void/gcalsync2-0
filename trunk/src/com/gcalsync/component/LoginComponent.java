@@ -19,6 +19,7 @@ import javax.microedition.midlet.MIDlet;
 import javax.microedition.lcdui.*;
 import com.gcalsync.cal.gcal.*;
 import com.gcalsync.log.ErrorHandler;
+import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 import com.gcalsync.option.Options;
 
@@ -47,8 +48,8 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
     StringItem lblUsername = new StringItem("Username", null);
     StringItem lblPassword = new StringItem("Password", null);
     StringItem lblSignIn = new StringItem(signInMsg, null);
-    TextField txtUsername = new TextField("", Store.getOptions().username, 64, TextField.EMAILADDR);
-    TextField txtPassword = new TextField("", Store.getOptions().password, 64, TextField.SENSITIVE | TextField.PASSWORD);
+    TextField txtUsername = null;
+    TextField txtPassword = null;
     
     Form form;
     MIDlet midlet;
@@ -56,15 +57,22 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
     /**
      * Constructor
      */
-    public LoginComponent() {
+    public LoginComponent() throws Exception {
         this(null);
     }
     
     /**
      * Constructor
      */
-    public LoginComponent(MIDlet m) {
-        setMidlet(m);
+    public LoginComponent(MIDlet m) throws Exception {
+        try {
+            txtUsername = new TextField("", Store.getOptions().username, 64, TextField.EMAILADDR);
+            txtPassword = new TextField("", Store.getOptions().password, 64, TextField.SENSITIVE | TextField.PASSWORD);
+
+            setMidlet(m);
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "{init}", e);
+        }
     }
     
     /**
@@ -92,35 +100,39 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
     /**
      * Creates the view
      */
-    protected void createView() {
-        form = new Form(welcomeMsg);
-        
-        //add form items
-        form.append(new Spacer(getDisplayable().getWidth(), 5));
-        addLoginFields();
-        addSkipHyperlink();
-        
-        //populate form items
-        updateView();
-        
-        //add commands to form
-        form.addCommand(CMD_SIGNIN);
-        form.addCommand(CMD_SKIP);
-        form.addCommand(CMD_ABOUT);
-        form.addCommand(CMD_OPTIONS);
-        form.addCommand(CMD_EXIT);
-       // form.addCommand(CMD_TEST);
-        form.setCommandListener(this);
-        form.setItemStateListener(this);
+    protected void createView() throws Exception {
+        try {
+            form = new Form(welcomeMsg);
+
+            //add form items
+            form.append(new Spacer(getDisplayable().getWidth(), 5));
+            addLoginFields();
+            addSkipHyperlink();
+
+            //populate form items
+            updateView();
+
+            //add commands to form
+            form.addCommand(CMD_SIGNIN);
+            form.addCommand(CMD_SKIP);
+            form.addCommand(CMD_ABOUT);
+            form.addCommand(CMD_OPTIONS);
+            form.addCommand(CMD_EXIT);
+            //form.addCommand(CMD_TEST);
+            form.setCommandListener(this);
+            form.setItemStateListener(this);
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "createView", e);
+        }
     }
     
     /**
      * Updates the screen and begins auto sign-in if so configured
      */
     public void handle() {
-        super.handle();
-        
         try {
+            super.handle();
+            
             //auto sign in
             if (Store.getOptions().autoLogin) signIn();
         }catch(Exception e) {
@@ -131,19 +143,23 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
     /**
      * Updates the view after it is created
      */
-    protected void updateView() {
-        Options options = Store.getOptions();
-        //update credentials fields
-        txtUsername.setString(options.username);
-        txtPassword.setString(options.password);
-        
-        //The password is only saved if the "Save password" checkbox was
-        // checked when the User signed in. So, assume that the User
-        // still wants to save his password if the password record is not blank.
-        if (!options.password.equals(""))
-            chkSavePasswd.setSelectedIndex(0, true);
-        
-        chkAutoLogin.setSelectedIndex(0, options.autoLogin);
+    protected void updateView() throws Exception {
+        try {
+            Options options = Store.getOptions();
+            //update credentials fields
+            txtUsername.setString(options.username);
+            txtPassword.setString(options.password);
+
+            //The password is only saved if the "Save password" checkbox was
+            // checked when the User signed in. So, assume that the User
+            // still wants to save his password if the password record is not blank.
+            if (!options.password.equals(""))
+                chkSavePasswd.setSelectedIndex(0, true);
+
+            chkAutoLogin.setSelectedIndex(0, options.autoLogin);
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "updateView", e);
+        }
     }
     
     /**
@@ -269,19 +285,23 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
      * Saves username (and password) and then signs into Google
      * Calendar
      */
-    void signIn() {
-        Alert a;
+    void signIn() throws Exception {
+        try {
+            Alert a;
 
-        if (txtUsername.getString().trim().length() > 0
-                && txtPassword.getString().length() > 0) {
-            //save credentials and then start login on another
-            // thread to prevent phone lock-up
-            saveCredentials();
-            new Thread(this).start();
-        } else {
-            a = new Alert("Error", "Username or password is blank.", null, AlertType.ERROR);
-            a.setTimeout(Alert.FOREVER);
-            display.setCurrent(a);
+            if (txtUsername.getString().trim().length() > 0
+                    && txtPassword.getString().length() > 0) {
+                //save credentials and then start login on another
+                // thread to prevent phone lock-up
+                saveCredentials();
+                new Thread(this).start();
+            } else {
+                a = new Alert("Error", "Username or password is blank.", null, AlertType.ERROR);
+                a.setTimeout(Alert.FOREVER);
+                display.setCurrent(a);
+            }
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "signIn", e);
         }
     }
     
@@ -290,27 +310,31 @@ public class LoginComponent extends MVCComponent implements ItemCommandListener,
      * "Save password" box is checked. If the box is unchecked, the
      * existing saved password is cleared from memory.
      */
-    void saveCredentials() {
-        Options options = Store.getOptions();
-        String username = txtUsername.getString().trim();
-        
-        //exclude @gmail.com if it exists
-        int index = username.indexOf("@gmail.com");
-        if (index >= 0) username = username.substring(0, index);
-        
-        options.username = username;
-        
-        //get password only if it's to be saved
-        if (chkSavePasswd.isSelected(0)) {
-            options.password = txtPassword.getString();
-            options.autoLogin = chkAutoLogin.isSelected(0);
-        } else {
-            options.password = "";
-            options.autoLogin = false;
+    void saveCredentials() throws Exception {
+        try {
+            Options options = Store.getOptions();
+            String username = txtUsername.getString().trim();
+
+            //exclude @gmail.com if it exists
+            int index = username.indexOf("@gmail.com");
+            if (index >= 0) username = username.substring(0, index);
+
+            options.username = username;
+
+            //get password only if it's to be saved
+            if (chkSavePasswd.isSelected(0)) {
+                options.password = txtPassword.getString();
+                options.autoLogin = chkAutoLogin.isSelected(0);
+            } else {
+                options.password = "";
+                options.autoLogin = false;
+            }
+
+            //save credentials
+            Store.saveOptions();
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "saveCredentials", e);
         }
-        
-        //save credentials
-        Store.saveOptions();
     }
     
     /**

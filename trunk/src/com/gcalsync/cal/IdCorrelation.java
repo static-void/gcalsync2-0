@@ -32,6 +32,7 @@ public class IdCorrelation extends Storable {
     public String phoneCalId;
     public String gCalId;
     public long endDate;
+    public boolean isMainCalendarEvent = true;
 
     public IdCorrelation() {
         super(RecordTypes.ID_CORRELATION);
@@ -40,10 +41,26 @@ public class IdCorrelation extends Storable {
     public void readRecord(DataInputStream in) throws IOException {
         phoneCalId = in.readUTF();
         gCalId = in.readUTF();
+        
+        //if there are no more bytes in the record that means that I am in version == 0
+        if(in.available() == 0) {
+            return;
+        }
+        
+        byte version = in.readByte();
+        
+        //if version == 1
+        isMainCalendarEvent = in.readBoolean();
+        
     }
 
     public void writeRecord(DataOutputStream out) throws IOException {
         out.writeUTF(phoneCalId);
         out.writeUTF(gCalId);
+        
+        out.writeByte(1);
+        
+        //version==1
+        out.writeBoolean(isMainCalendarEvent);
     }
 }

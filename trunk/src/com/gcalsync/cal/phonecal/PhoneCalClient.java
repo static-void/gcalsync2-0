@@ -17,11 +17,13 @@
  *  --/nov/2007 Agustin
  *      -getGCalId: now it uses the phoneCalId
  *      -setBoolean: added
+ *  dec/2007 Agustin
+ *      -insertEvent, updateEvent: ignores events which RepeatRule is not supported by the phone
  */
 package com.gcalsync.cal.phonecal;
 
-import com.gcalsync.log.*;
 import com.gcalsync.cal.IdCorrelation;
+import com.gcalsync.cal.Recurrence;
 import com.gcalsync.store.Store;
 import com.gcalsync.log.*;
 
@@ -32,6 +34,7 @@ import javax.microedition.pim.PIMException;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
+import javax.microedition.pim.RepeatRule;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
@@ -46,12 +49,55 @@ public class PhoneCalClient {
     public int removedCount = 0;
     private EventList phoneEventList;
     
+    private static int[][] supportedRecurrenceFields = null;
+    
     public PhoneCalClient() {
         if (phoneEventList == null) {
             try {
                 PIM pim = PIM.getInstance();
                 phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
             } catch (Exception e) {}
+        }
+    }
+    
+    private PhoneCalClient(EventList phoneEventList) {
+        this.phoneEventList = phoneEventList;
+    }
+    
+    
+    /**
+     * Creates a new PhoneCalClient for the specified list of events.
+     * @param listName Name of a list, or null for no list
+     * @return A PhoneCalClient for the specifed list, or null if the
+     * list does not exist
+     */
+    public static PhoneCalClient createPhoneCalClient(String listName, boolean write) {
+        try {
+            PIM pim = PIM.getInstance();
+            
+            if(listName == null) {
+                EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, write ? PIM.READ_WRITE : PIM.READ_ONLY);
+                return new PhoneCalClient(phoneEventList);
+            }
+            
+            String[] ss = pim.listPIMLists(PIM.EVENT_LIST);
+            boolean found = false;
+            
+            for(int i = 0; i < ss.length && !found; i++) {
+                if(ss[i].equalsIgnoreCase(listName)) {
+                    found = true;
+                }
+            }
+            
+            if(!found) {
+                return null;
+            }
+            
+            EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, write ? PIM.READ_WRITE : PIM.READ_ONLY, listName);
+            return new PhoneCalClient(phoneEventList);
+            
+        }catch(Exception e) {
+            return null;
         }
     }
     
@@ -76,16 +122,20 @@ public class PhoneCalClient {
     }
     
     public String getStringField(Event phoneEvent, int field) {
-        if (phoneEventList.isSupportedField(field) && (phoneEvent.countValues(field) > 0)) {
-            return phoneEvent.getString(field, 0);
-        } else {
-            // TODO: log all unsupported fields, but only once
+        try {
+            if (phoneEvent.getPIMList().isSupportedField(field) && (phoneEvent.countValues(field) > 0)) {
+                return phoneEvent.getString(field, 0);
+            } else {
+                // TODO: log all unsupported fields, but only once
+                return null;
+            }
+        }catch(Exception e) {
             return null;
         }
     }
     
     public void setStringField(Event phoneEvent, int field, String value) {
-        if (phoneEventList.isSupportedField(field)) {
+        if (phoneEvent.getPIMList().isSupportedField(field)) {
             if (phoneEvent.countValues(field) == 0) {
                 phoneEvent.addString(field, Event.ATTR_NONE, value);
             } else {
@@ -96,7 +146,7 @@ public class PhoneCalClient {
     }
     
     public long getDateField(Event phoneEvent, int field) {
-        if (phoneEventList.isSupportedField(field) && (phoneEvent.countValues(field) > 0)) {
+        if (phoneEvent.getPIMList().isSupportedField(field) && (phoneEvent.countValues(field) > 0)) {
             return phoneEvent.getDate(field, 0);
         } else {
             // TODO: log all unsupported fields, but only once
@@ -105,7 +155,7 @@ public class PhoneCalClient {
     }
     
     public void setDateField(Event phoneEvent, int field, long value) {
-        if (phoneEventList.isSupportedField(field)) {
+        if (phoneEvent.getPIMList().isSupportedField(field)) {
             if (phoneEvent.countValues(field) == 0) {
                 phoneEvent.addDate(field, Event.ATTR_NONE, value);
             } else {
@@ -116,16 +166,20 @@ public class PhoneCalClient {
     }
     
     public int getIntField(Event phoneEvent, int field) {
-        if (phoneEventList.isSupportedField(field) && (phoneEvent.countValues(field) > 0)) {
-            return phoneEvent.getInt(field, 0);
-        } else {
-            // TODO: log all unsupported fields, but only once
+        try {
+            if (phoneEvent.getPIMList().isSupportedField(field) && (phoneEvent.countValues(field) > 0)) {
+                return phoneEvent.getInt(field, 0);
+            } else {
+                // TODO: log all unsupported fields, but only once
+                return -1;
+            }
+        }catch(Exception e) {
             return -1;
         }
     }
     
     public void setIntField(Event phoneEvent, int field, int value) {
-        if (phoneEventList.isSupportedField(field)) {
+        if (phoneEvent.getPIMList().isSupportedField(field)) {
             if (phoneEvent.countValues(field) == 0) {
                 phoneEvent.addInt(field, Event.ATTR_NONE, value);
             } else {
@@ -143,11 +197,10 @@ public class PhoneCalClient {
      * @return 0=false 1=true -1=fild unsuported
      */
     public int getBooleanField(Event phoneEvent, int field) {
-        if (phoneEventList.isSupportedField(field)) {
+        if (phoneEvent.getPIMList().isSupportedField(field)) {
             if(phoneEvent.countValues(field) > 0) {
                 return phoneEvent.getBoolean(field, 0) == true ? 1 : 0;
-            }
-            else {
+            } else {
                 return 0;
             }
         } else {
@@ -164,7 +217,7 @@ public class PhoneCalClient {
      * @return True if the field is supported, false otherwise
      */
     public boolean setBooleanField(Event phoneEvent, int field, boolean value) {
-        if (phoneEventList.isSupportedField(field)) {
+        if (phoneEvent.getPIMList().isSupportedField(field)) {
             if (phoneEvent.countValues(field) == 0) {
                 phoneEvent.addBoolean(field, Event.ATTR_NONE, value);
             } else {
@@ -223,12 +276,22 @@ public class PhoneCalClient {
     public boolean insertEvent(Event phoneEvent, String gCalId) throws PIMException {
         boolean success;
         try {
+            Hashtable correctRR = Recurrence.getRepeatRuleInfo(phoneEvent.getRepeat());
             phoneEvent.commit();
-            setGCalId(phoneEvent, gCalId);
-            createdCount++;
-            success = true;
+            RepeatRule phoneRR = phoneEvent.getRepeat();
+            
+            if(!Recurrence.repeatRuleEquals(phoneRR, correctRR)) {
+                ((EventList)phoneEvent.getPIMList()).removeEvent(phoneEvent);
+                success = false;
+            }
+            else {
+                setGCalId(phoneEvent, gCalId);
+                createdCount++;
+                success = true;
+            }
         } catch (Exception e) {
             success = false;
+            e.printStackTrace();
         }
         
         return success;
@@ -237,9 +300,18 @@ public class PhoneCalClient {
     public boolean updateEvent(Event phoneEvent) throws PIMException {
         boolean success;
         try {
+            Hashtable correctRR = Recurrence.getRepeatRuleInfo(phoneEvent.getRepeat());
             phoneEvent.commit();
-            updatedCount++;
-            success = true;
+            RepeatRule phoneRR = phoneEvent.getRepeat();
+            
+            //check if the phone supports the repeat rule (if set)
+            if(!Recurrence.repeatRuleEquals(phoneRR, correctRR)) {
+                ((EventList)phoneEvent.getPIMList()).removeEvent(phoneEvent);
+                success = false;
+            } else {
+                updatedCount++;
+                success = true;
+            }
         } catch (Exception e) {
             success = false;
         }
@@ -279,8 +351,31 @@ public class PhoneCalClient {
         }
     }
     
-    private boolean shouldDownload() {
-        return Store.getOptions().download;
+    private boolean shouldDownload() throws Exception {
+        try {
+            return Store.getOptions().download;
+        }catch(Exception e) {
+            throw new GCalException(this.getClass(), "shouldDownload", e);
+        }
+    }
+    
+    public static int[][] getSupportedRecurrenceFields() {
+        if(supportedRecurrenceFields == null) {
+            try {
+                PIM pim = PIM.getInstance();
+                EventList phoneEventList = (EventList) pim.openPIMList(PIM.EVENT_LIST, PIM.READ_WRITE);
+                
+                supportedRecurrenceFields = new int[4][];
+                
+                supportedRecurrenceFields[0] = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.DAILY);
+                supportedRecurrenceFields[1] = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.WEEKLY);
+                supportedRecurrenceFields[2] = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.MONTHLY);
+                supportedRecurrenceFields[3] = phoneEventList.getSupportedRepeatRuleFields(RepeatRule.YEARLY);
+                
+            } catch (Exception e) {}
+        }
+        
+        return supportedRecurrenceFields;
     }
     
 }

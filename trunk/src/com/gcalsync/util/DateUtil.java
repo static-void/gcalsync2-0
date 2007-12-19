@@ -19,9 +19,12 @@
  *      -isAllDay: now it correctly recognizes blackberry all day events
  *      -formatInterval: print all day events correctly
  *      -new functions to read GMT time
+ *  dec/2007 Agustin
+ *      -gmtTimeToLocalTime, localTimeToGmtTime: added, used for Nokia allday events
  */
 package com.gcalsync.util;
 
+import com.gcalsync.log.GCalException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -304,83 +307,91 @@ public class DateUtil {
         return sb.toString();
     }
     
-    public static long dateToLong(String date) {
-        String str = dateToIsoDateTime(date);
-        return isoDateToLong(str);
+    public static long dateToLong(String date) throws Exception {
+        try {
+            String str = dateToIsoDateTime(date);
+            return isoDateToLong(str);
+        }catch(Exception e) {
+            throw new GCalException(DateUtil.class, "dateToLong", e);
+        }
     }
-    public static long isoDateToLong(String isoDate) {
+    public static long isoDateToLong(String isoDate) throws Exception {
         return isoDateToLongExtraInfo(isoDate)[0];
     }
     
-    public static long[] isoDateToLongExtraInfo(String isoDate) {
-        String year = isoDate.substring(0, 4);
-        String month = isoDate.substring(5, 7);
-        String day = isoDate.substring(8, 10);
-        String hour = "0";
-        String min = "0";
-        String sec = "0";
-        String millis = "0";
-        String timeZoneHour = "+00";
-        String timeZoneMin = "00";
-        boolean timeIncluded = false;
-        long timeZoneAdjustment = 0;
-        boolean timeZoneIncluded = false;
-        
-        if (isoDate.length() >= 11) {
-            if (isoDate.charAt(10) == 'T' && isoDate.length() >= 18) {
-                // Time of day given. Example: 2006-04-24T16:29:59 or 2006-04-24T16:29:59.001
-                hour = isoDate.substring(11, 13);
-                min = isoDate.substring(14, 16);
-                sec = isoDate.substring(17, 19);
-                
-                if(isoDate.length() >= 23) {
-                    //Time has miloseconds too: 2006-04-24T16:29:59.001
-                    millis = isoDate.substring(20, 23);
-                    if (isoDate.length() >= 29) {
-                        // Time of day and timezone given. Example: 2006-04-24T16:29:59.001-07:00
-                        timeZoneHour = isoDate.substring(23, 26);
-                        timeZoneMin = isoDate.substring(27, 29);
+    public static long[] isoDateToLongExtraInfo(String isoDate) throws Exception {
+        try {
+            String year = isoDate.substring(0, 4);
+            String month = isoDate.substring(5, 7);
+            String day = isoDate.substring(8, 10);
+            String hour = "0";
+            String min = "0";
+            String sec = "0";
+            String millis = "0";
+            String timeZoneHour = "+00";
+            String timeZoneMin = "00";
+            boolean timeIncluded = false;
+            long timeZoneAdjustment = 0;
+            boolean timeZoneIncluded = false;
+
+            if (isoDate.length() >= 11) {
+                if (isoDate.charAt(10) == 'T' && isoDate.length() >= 18) {
+                    // Time of day given. Example: 2006-04-24T16:29:59 or 2006-04-24T16:29:59.001
+                    hour = isoDate.substring(11, 13);
+                    min = isoDate.substring(14, 16);
+                    sec = isoDate.substring(17, 19);
+
+                    if(isoDate.length() >= 23) {
+                        //Time has miloseconds too: 2006-04-24T16:29:59.001
+                        millis = isoDate.substring(20, 23);
+                        if (isoDate.length() >= 29) {
+                            // Time of day and timezone given. Example: 2006-04-24T16:29:59.001-07:00
+                            timeZoneHour = isoDate.substring(23, 26);
+                            timeZoneMin = isoDate.substring(27, 29);
+                            timeZoneIncluded = true;
+                        }
+                    }
+
+                    timeIncluded = true;
+
+                } else {
+                    // No time of day but timezone given. Example: 2006-04-24-07:00
+                    if (isoDate.length() >= 16) {
+                        timeZoneHour = isoDate.substring(10, 13);
+                        timeZoneMin = isoDate.substring(14, 16);
                         timeZoneIncluded = true;
                     }
                 }
-                
-                timeIncluded = true;
-                
-            } else {
-                // No time of day but timezone given. Example: 2006-04-24-07:00
-                if (isoDate.length() >= 16) {
-                    timeZoneHour = isoDate.substring(10, 13);
-                    timeZoneMin = isoDate.substring(14, 16);
-                    timeZoneIncluded = true;
+            }
+            // else: no time of day, no timezone. Example: 2006-04-24
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+            calendar.set(Calendar.YEAR, Integer.parseInt(year));
+            calendar.set(Calendar.MONTH, Integer.parseInt(month) - 1); // January is 0
+            calendar.set(Calendar.DAY_OF_MONTH, Integer.parseInt(day));
+            calendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(hour));
+            calendar.set(Calendar.MINUTE, Integer.parseInt(min));
+            calendar.set(Calendar.SECOND, Integer.parseInt(sec));
+            calendar.set(Calendar.MILLISECOND, Integer.parseInt(millis));
+
+            //System.out.println("Time without timezone: " + calendar.getTime());
+
+            //adjust time if it was included
+            if (timeIncluded) {
+                Options options = Store.getOptions();
+                timeZoneAdjustment = options.downloadTimeZoneOffset;
+
+                if(timeZoneIncluded) {
+                    timeZoneAdjustment -= stringTimeZoneToLong(timeZoneHour, timeZoneMin);
                 }
             }
+
+            long timeMillis = calendar.getTime().getTime() + timeZoneAdjustment;
+
+            //System.out.println("Time is: " + new Date(timeMillis));
+            return new long[] { timeMillis, timeIncluded ? 1 : 0};
+        }catch(Exception e) {
+            throw new GCalException(DateUtil.class, "isoDateToLongExtraInfo", e);
         }
-        // else: no time of day, no timezone. Example: 2006-04-24
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        calendar.set(Calendar.YEAR, Integer.parseInt(year));
-        calendar.set(Calendar.MONTH, Integer.parseInt(month) - 1); // January is 0
-        calendar.set(Calendar.DAY_OF_MONTH, Integer.parseInt(day));
-        calendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(hour));
-        calendar.set(Calendar.MINUTE, Integer.parseInt(min));
-        calendar.set(Calendar.SECOND, Integer.parseInt(sec));
-        calendar.set(Calendar.MILLISECOND, Integer.parseInt(millis));
-        
-        //System.out.println("Time without timezone: " + calendar.getTime());
-        
-        //adjust time if it was included
-        if (timeIncluded) {
-            Options options = Store.getOptions();
-            timeZoneAdjustment = options.downloadTimeZoneOffset;
-            
-            if(timeZoneIncluded) {
-                timeZoneAdjustment -= stringTimeZoneToLong(timeZoneHour, timeZoneMin);
-            }
-        }
-        
-        long timeMillis = calendar.getTime().getTime() + timeZoneAdjustment;
-        
-        //System.out.println("Time is: " + new Date(timeMillis));
-        return new long[] { timeMillis, timeIncluded ? 1 : 0};
     }
     
     private static long stringTimeZoneToLong(String timeZoneHour, String timeZoneMin) {
@@ -508,6 +519,36 @@ public class DateUtil {
         } else {
             return "" + value;
         }
+    }
+    
+    public static long gmtTimeToLocalTime(long gmtTime) {
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        calendar.setTime(new Date(gmtTime));
+        
+        int offset = TimeZone.getDefault().getOffset(
+                1, //era - The era of the given date (0 = BC, 1 = AD).
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH),
+                calendar.get(Calendar.DAY_OF_WEEK),
+                ((calendar.get(Calendar.HOUR) * 60 + calendar.get(Calendar.MINUTE)) * 60 + calendar.get(Calendar.SECOND)) * 1000 + calendar.get(Calendar.MILLISECOND));
+        
+        return gmtTime - offset;
+    }
+    
+    public static long localTimeToGmtTime(long gmtTime) {
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+        calendar.setTime(new Date(gmtTime));
+        
+        int offset = TimeZone.getDefault().getOffset(
+                1, //era - The era of the given date (0 = BC, 1 = AD).
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH),
+                calendar.get(Calendar.DAY_OF_WEEK),
+                ((calendar.get(Calendar.HOUR) * 60 + calendar.get(Calendar.MINUTE)) * 60 + calendar.get(Calendar.SECOND)) * 1000 + calendar.get(Calendar.MILLISECOND));
+        
+        return gmtTime + offset;
     }
     
     /*
