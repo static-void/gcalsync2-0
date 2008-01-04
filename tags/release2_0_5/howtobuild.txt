@@ -1,0 +1,17 @@
+Here is how to build GCalSync on a Windows machine:
+
+1. Install Sun Wireless Toolkit (http://java.sun.com/products/sjwtoolkit/)
+Sun Wireless Toolkit as <WTK-dir>
+2. Create a new folder <WTK-dir>\gcalsync and check out GCalSync: svn checkout https://svn.sourceforge.net:443/svnroot/gcalsync
+3. Start "Ktoolbar" from Sun Wireless Toolkit
+4. Choose 'open project', choose the gcalsync folder (gcalsync.jad must be in the bin folder).
+5. Choose Project->Build
+
+You can now run GCalSync in an emulator by choosing "Run" in KToolbar. To deploy to a phone, copy bin/gcalsync.jar to the phone (IR or BlueTooth often works best since this will trigger the install routine on the phone).
+
+To build a cod-file for BlackBerry:
+6. Install BlackBerry Component Package or the JDE (http://www.blackberry.com/developers/downloads/jde/index.shtml).
+7. Install Ant or a IDE that is packaged with Ant (such as NetBeans). Define environment variable "ANT_HOME" as the home directory of Ant.
+8. Type "ant cod" at command prompt from <WTK-dir>\apps\gcalsync\.
+
+This produces a gcalsync.cod that can be deployed to a BlackBerry. You can also run the file in a BlackBerry emulator (use BlackBerry JDE for this).

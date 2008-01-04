@@ -1,0 +1,31 @@
+<loader version="1.0">
+	<application id="GCalSync2_0_3">
+		<name >
+			GCalSync
+		</name>
+		<description >
+			Syncs Google Calendar with your mobile device&apos;s built-in calendar
+		</description>
+		<version >
+			2.0.3
+		</version>
+		<vendor >
+			Primo Sync LLC
+		</vendor>
+		<copyright >
+			Copyright (c) 2007 Primo Sync LLC
+		</copyright>
+		<fileset Java="1.24">
+			<directory >
+				
+			</directory>
+			<files >
+				GCalSync2_0_3.cod
+
+			</files>
+
+		</fileset>
+
+	</application>
+
+</loader>
