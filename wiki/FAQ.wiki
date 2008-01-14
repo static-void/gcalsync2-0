@@ -52,8 +52,11 @@ After making the changes, you may need to reboot your BlackBerry
 o SAMSUNG A1200 PHONES
 
 1. Install gcalsync to the memory card of the phone (not the phone itself)
+
 2. Put the phone in mass storage mode and plug into your computer
+
 3. Set your folder view to be able to see invisible files & folders
+
 4. go to .system/java/DownloadApps/MIDletxxx/registry.txt and change the following values:
 
 Domain: untrusted -> Domain: Manufacturer
