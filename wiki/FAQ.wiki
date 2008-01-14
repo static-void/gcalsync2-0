@@ -24,6 +24,24 @@ For NOKIA Phones (you might need to allow downloading unsigned JAR)
 
 And then try to download application.
 
+o SAMSUNG A1200 PHONES
+
+1. Install gcalsync to the memory card of the phone (not the phone itself)
+
+2. Put the phone in mass storage mode and plug into your computer
+
+3. Set your folder view to be able to see invisible files & folders
+
+4. go to .system/java/DownloadApps/MIDletxxx/registry.txt and change the following values:
+
+Domain: untrusted -> Domain: Manufacturer
+Is-Trusted: 0 -> Is-Trusted: 1
+DRM-Mode: Forbidden -> DRM-Mode: Allowed
+
+5. Save the changes and and all should be well. 
+
+Originally posted here: http://www.motorolafans.com/forums/showthread.php?t=7466
+
 *GCalSync2 installs and runs fine but it won't login. Why?*
 
 o BlackBerry APN Settings
@@ -48,21 +66,3 @@ o For all other BlackBerrys
 - Change TLS Default to Handled instead of Proxy 
 
 After making the changes, you may need to reboot your BlackBerry
-
-o SAMSUNG A1200 PHONES
-
-1. Install gcalsync to the memory card of the phone (not the phone itself)
-
-2. Put the phone in mass storage mode and plug into your computer
-
-3. Set your folder view to be able to see invisible files & folders
-
-4. go to .system/java/DownloadApps/MIDletxxx/registry.txt and change the following values:
-
-Domain: untrusted -> Domain: Manufacturer
-Is-Trusted: 0 -> Is-Trusted: 1
-DRM-Mode: Forbidden -> DRM-Mode: Allowed
-
-5. Save the changes and and all should be well. 
-
-Originally posted here: http://www.motorolafans.com/forums/showthread.php?t=7466
