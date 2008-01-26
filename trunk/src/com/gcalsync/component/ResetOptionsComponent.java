@@ -69,11 +69,11 @@ public class ResetOptionsComponent extends MVCComponent implements Runnable
 	*/
 	public void commandAction(Command c, Displayable d)
 	{
+            //start deletion thread
+            if (c == CMD_OK) {
+                new Thread(this).start();
+            }
             try {
-		//start deletion thread
-		if (c == CMD_OK)
-			new Thread(this).start();
-
 		//return to Options screen
 		Components.options.showScreen();
             }catch(Throwable t) {

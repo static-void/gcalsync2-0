@@ -21,7 +21,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import com.gcalsync.cal.gcal.NoSuchCalendarException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -45,24 +45,21 @@ public class HttpUtil {
                 return lastResponseMsg;
         }
 
-    public static byte[] sendRequest(String url, String method, String postData, String authorization) {
+    public static byte[] sendRequest(String url, String method, String postData, String authorization) throws IOException {
         return sendRequest(url, method, postData, authorization, "application/x-www-form-urlencoded");
     }
 
-    public static byte[] sendAtomRequest(String url, String method, String postData, String authorization) {
+    public static byte[] sendAtomRequest(String url, String method, String postData, String authorization) throws IOException {
         return sendRequest(url, method, postData, authorization, "application/atom+xml");
     }
 
-    public static byte[] sendRequest(String url, String method, String postData, String authorization, String contentType) {
-//#ifdef DEBUG_INFO
-//#         log("Sending request: url='" + url + "', method='" + method + "', postData='" + postData + "', authorization='" + authorization + "', contentType='" + contentType + "'");
-//#endif
+    public static byte[] sendRequest(String url, String method, String postData, String authorization, String contentType) throws IOException {
         HttpConnection connection = null;
         OutputStream out = null;
         DataInputStream in = null;
         byte[] responseData = null;
         int status = -1;
-
+        
         try {
             // Open the connection and check for re-directs
             while (true) {
@@ -92,39 +89,28 @@ public class HttpUtil {
                     out = connection.openOutputStream();
                     out.write(data);
 
-                    try {
-                        out.close();
-                    } catch (IOException e) {
-//#ifdef DEBUG_ERR
-//#                         log("failed to close out for " + url + " due to " + e);
-//#endif
-                        e.printStackTrace();
-                    }
+                    closeClosable(out);
                     out = null;
                 }
 
                 // Get the status code, causing the connection to be made
-                status = connection.getResponseCode();
-                                lastResponseCode = status;
-                                lastResponseMsg = connection.getResponseMessage();
-//#ifdef DEBUG_INFO
-//#                 System.out.println("HTTP status code: " + status);
-//#endif
+                status = connection.getResponseCode(); // FIXME: blocks untill finished or timeout
+                lastResponseCode = status;
+                lastResponseMsg = connection.getResponseMessage();
+
                 if (status == HttpConnection.HTTP_TEMP_REDIRECT ||
-                        status == HttpConnection.HTTP_MOVED_TEMP ||
-                        status == HttpConnection.HTTP_MOVED_PERM) {
+                    status == HttpConnection.HTTP_MOVED_TEMP ||
+                    status == HttpConnection.HTTP_MOVED_PERM) {
                     // Get the new location and close the connection
                     url = connection.getHeaderField("location");
-                    connection.close();
-//#ifdef DEBUG_INFO
-//#                     log("Redirecting to " + url);
-//#endif
+                    closeClosable(connection);
+                    connection = null;
                 } else {
                     // no redirect
                     break;
                 }
             }
-
+            
             int length = (int) connection.getLength();
             if (length > 0) {
                 responseData = new byte[length];
@@ -147,49 +133,47 @@ public class HttpUtil {
                     readLength = in.read(responseData, index, chunkSize);
                     index += readLength;
                     chunkNumber++;
-                    //progressGauge.updateLabel("Downloading (" + chunkNumber + " kB)...");
                 } while (readLength > 0);
                 length = index;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("HTTP connection to " + url + " failed due to " + e);
         } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            closeClosable(out);
+            closeClosable(in);
+            closeClosable(connection);
         }
 
-        if (status != 200) {
-            String responseString = new String(responseData);
-            if (responseString.indexOf("Cannot access the calendar you requested") >= 0) {
-                throw new NoSuchCalendarException();
-            }
-                        else {
-                                lastResponseMsg += ": " + responseString;
-                        }
-        }
+//        if (status != HttpConnection.HTTP_OK && ) {
+//            String responseString = new String(responseData);
+//            if (responseString.indexOf("Cannot access the calendar you requested") != -1) {
+//                throw new NoSuchCalendarException();
+//            } else {
+//                lastResponseMsg += ": " + responseString;
+//            }
+//        }
 
         return responseData;
     }
+    /**
+     * Safely closes closable objects
+     * 
+     * @param closable
+     */
+    private static void closeClosable(Object closable) {
+        if (closable != null) {
+            try {
+            if (closable instanceof HttpConnection) {
+                ((HttpConnection) closable).close();
+            } else if (closable instanceof InputStream) {
+                ((InputStream) closable).close();
+            } else if (closable instanceof OutputStream) {
+                ((OutputStream) closable).close();
+            }
+            } catch (Throwable e) {
+                // Ignored
+            }
+        }
+    }
+    
 //#if DEBUG || DEBUG_INFO || DEBUG_WARN || DEBUG_ERR
 //#     private static void log(String message) {
 //#         System.out.println(message);

@@ -34,10 +34,6 @@ public class ErrorHandler {
     
     public static boolean debugMode = true;
     public static Display display;
-//#ifdef DEBUG_LOG
-//#     public static StringBuffer log;
-//#endif
-    
     
     /**
      * Shows an error on the screen, and locks the thread until
@@ -89,16 +85,6 @@ public class ErrorHandler {
     }
     
     public static Alert getErrorAlert(String message, Throwable t) {
-//#ifdef DEBUG_ERR
-//#         if (t != null) {
-//#             t.printStackTrace();
-//#         }
-//#endif
-//#ifdef DEBUG_LOG
-//#         log.append(t + "\n");
-//#endif
-        
-        
         if (debugMode) {
             t.printStackTrace();
         }

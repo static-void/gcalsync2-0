@@ -87,13 +87,14 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 	protected void createView() throws Exception 
 	{
             try {
-		String title = Store.getOptions().username;
-
+		String usr = Store.getOptions().username;
 		//get username and append "Calendars"
-		if (!title.equals("")) title += "'s ";
-		title += "Calendars";
+		if (!usr.equals("")) {
+                    usr += "'s ";
+                }
+		usr += "Calendars";
 
-		form = new Form(title);
+		form = new Form(usr);
 		downloadFeeds();
             }catch(Exception e) {
                 throw new GCalException(this.getClass(), "createView", e);
@@ -170,58 +171,51 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 	 */
 	public void run()
 	{
-		Alert a;
-		String err;
+            Alert a = null;
+            String err = null;
 
-		try
-		{
-			//add commands to form
-			form.addCommand(CMD_OPTIONS);
-			form.addCommand(CMD_CANCEL);
+            try {
+                //add commands to form
+                form.addCommand(CMD_OPTIONS);
+                form.addCommand(CMD_CANCEL);
 
-			feeds = gCalClient.downloadFeeds();
+                feeds = gCalClient.downloadFeeds();
+                //if no feeds were downloaded, show error
+                if (feeds != null && feeds.length == 0) {
+                    if (HttpUtil.getLastResponseCode() == HttpConnection.HTTP_OK) {
+                        err = "Calendars unavailable";
+                    } else {
+                        //show server error
+                        err = "ERR (" + HttpUtil.getLastResponseCode() + ") " + HttpUtil.getLastResponseMsg();
+                    }
 
-			//if no feeds were downloaded, show error
-			if (feeds.length == 0) {
-				if (HttpUtil.getLastResponseCode() == HttpConnection.HTTP_OK) {
-					err = "Calendars unavailable";
-				} else {
-					//show server error
-					err = "ERR (" + HttpUtil.getLastResponseCode() + ") " + HttpUtil.getLastResponseMsg();
-				}
+                    a = new Alert("Error", err, null, AlertType.ERROR);
+                    a.setTimeout(Alert.FOREVER);
+                    display.setCurrent(a, Components.login.getDisplayable());
+                //otherwise, add feeds to Calendar List
+                } else {
+                    //if we're downloading all calendars, then download the
+                    //event details and reminders of all calendars (and pass
+                    //to the Preview component if previews are enabled)
+                    if (Store.getOptions().downloadAllCalendars) {
+                        Store.getTimestamps().lastSync = 0;
 
-				a = new Alert("Error", err, null, AlertType.ERROR);
-				a.setTimeout(Alert.FOREVER);
-				display.setCurrent(a, Components.login.getDisplayable());
-
-			//otherwise, add feeds to Calendar List
-			} else {
-
-				//if we're downloading all calendars, then download the
-				//event details and reminders of all calendars (and pass
-				//to the Preview component if previews are enabled)
-				if (Store.getOptions().downloadAllCalendars) {
-					Store.getTimestamps().lastSync = 0;
-
-					for (int i=0; i<feeds.length; i++) {
-						feeds[i].sync = true;
-						feeds[i].reminders = true;
-					}
-
-					new SyncComponent(gCalClient, feeds).handle();
-				} else {
-					addCalendarList();
-					form.addCommand(CMD_DOWNLOAD_LIST);
-					form.addCommand(CMD_FULL_SYNC);
-					form.addCommand(CMD_SYNC);
-                                        form.addCommand(CMD_AUTO_SYNC);
-				}
-			}
-		}
-		catch (Throwable e)
-		{
-			ErrorHandler.showError("Failed to get calendar list", e);
-		}
+                        for (int i=0; i<feeds.length; i++) {
+                                feeds[i].sync = true;
+                                feeds[i].reminders = true;
+                        }
+                        new SyncComponent(gCalClient, feeds).handle();
+                    } else {
+                        addCalendarList();
+                        form.addCommand(CMD_DOWNLOAD_LIST);
+                        form.addCommand(CMD_FULL_SYNC);
+                        form.addCommand(CMD_SYNC);
+                        form.addCommand(CMD_AUTO_SYNC);
+                    }
+                }
+            } catch (Throwable e) {
+                ErrorHandler.showError("Failed to get calendar list", e);
+            }
 	}
 
 	/**
@@ -243,8 +237,7 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 	void addCalendarList()
 	{
 		Font feedTitleFont = Font.getFont(Font.FACE_PROPORTIONAL, 
-										  Font.STYLE_BOLD,
-										  Font.SIZE_SMALL);
+                        Font.STYLE_BOLD, Font.SIZE_SMALL);
 
 		//clean form
 		form.deleteAll();
@@ -258,48 +251,44 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 		syncChoices = new ChoiceGroup[feeds.length];
 		for (int i = 0; i < feeds.length; ++i)
 		{
-			title = new StringItem(feeds[i].title, null);
-			title.setFont(feedTitleFont);
-			syncChoices[i] = new ChoiceGroup(null, ChoiceGroup.MULTIPLE, new String[]{"Sync"}, null);
-			reminderChoices[i] = new ChoiceGroup(null, ChoiceGroup.MULTIPLE, new String[]{"Reminders"}, null);
-			syncChoices[i].setSelectedIndex(0, feeds[i].sync);
-			reminderChoices[i].setSelectedIndex(0, feeds[i].reminders);
+                    title = new StringItem(feeds[i].title, null);
+                    title.setFont(feedTitleFont);
+                    syncChoices[i] = new ChoiceGroup(null, ChoiceGroup.MULTIPLE, new String[]{"Sync"}, null);
+                    reminderChoices[i] = new ChoiceGroup(null, ChoiceGroup.MULTIPLE, new String[]{"Reminders"}, null);
+                    syncChoices[i].setSelectedIndex(0, feeds[i].sync);
+                    reminderChoices[i].setSelectedIndex(0, feeds[i].reminders);
 
-			form.append(title);
-			form.append(syncChoices[i]);
-			form.append(reminderChoices[i]);
+                    form.append(title);
+                    form.append(syncChoices[i]);
+                    form.append(reminderChoices[i]);
 		}
 	}
 
 	/**
      * Copies saved calendar settings into new calendar list
 	 */
-	void copyCalendarSettings()
-	{
-		GCalFeed[] newFeeds = feeds;
-		GCalFeed[] oldFeeds = Store.getFeeds();
-		Vector newIds = new Vector();
-		Vector oldIds = new Vector();
-		int feedIndex;
+	void copyCalendarSettings() {
+            GCalFeed[] newFeeds = feeds;
+            GCalFeed[] oldFeeds = Store.getFeeds();
+            Vector newIds = new Vector();
+            Vector oldIds = new Vector();
+            int feedIndex;
 
-		//compare all the ids from the new feeds and the saved feeds
-		for (int i=0; i<newFeeds.length; i++) newIds.addElement(newFeeds[i].id);
-		for (int i=0; i<oldFeeds.length; i++) oldIds.addElement(oldFeeds[i].id);
+            //compare all the ids from the new feeds and the saved feeds
+            for (int i=0; i<newFeeds.length; i++) newIds.addElement(newFeeds[i].id);
+            for (int i=0; i<oldFeeds.length; i++) oldIds.addElement(oldFeeds[i].id);
 
-		if (!oldIds.isEmpty() && !newIds.isEmpty())
-		{
-			//if a saved calendar is found in the new list, then
-			//update the new list entry with the calendar settings
-			for (int i=0; i<newIds.size(); i++)
-			{
-				feedIndex = oldIds.indexOf(newIds.elementAt(i));
-				if (feedIndex >= 0)
-				{
-					newFeeds[i].sync = oldFeeds[feedIndex].sync;
-					newFeeds[i].reminders = oldFeeds[feedIndex].reminders;
-				}
-			}
-		}
+            if (!oldIds.isEmpty() && !newIds.isEmpty()) {
+                //if a saved calendar is found in the new list, then
+                //update the new list entry with the calendar settings
+                for (int i=0; i<newIds.size(); i++) {
+                    feedIndex = oldIds.indexOf(newIds.elementAt(i));
+                    if (feedIndex >= 0) {
+                        newFeeds[i].sync = oldFeeds[feedIndex].sync;
+                        newFeeds[i].reminders = oldFeeds[feedIndex].reminders;
+                    }
+                }
+            }
 	}
 
 	/**
