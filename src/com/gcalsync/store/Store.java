@@ -20,6 +20,7 @@ import com.gcalsync.cal.*;
 import com.gcalsync.option.Options;
 import com.gcalsync.cal.gcal.GCalFeed;
 import javax.microedition.rms.RecordStore;
+import javax.microedition.rms.RecordStoreException;
 
 /**
  * @author Thomas Oldervoll, thomas@zenior.no
@@ -47,37 +48,31 @@ public class Store {
         }
     }
 
-    public static Options getOptions() throws Exception {
+    public static Options getOptions() throws GCalException {
         if (options == null) {
-			try { options = (Options) storeController.read(RecordTypes.OPTIONS); }
-			catch (Exception e) 
-			{ 
-//#ifdef DEBUG_ERR
-//# 				System.out.println("getOptions() failed...using default values, err=" + e);
-//#endif
-				options = null;
-                                throw new GCalException("Error reading Store Options (Store.getOptions)", e);
-			}
+            try {
+                options = (Options) storeController.read(RecordTypes.OPTIONS);
+            } catch (Exception e) { 
+                options = null;
+                throw new GCalException("Error reading Store Options (Store.getOptions)", e);
+            }
 
-			if (options == null)
-			{
-				options = new Options();
-			}
+            if (options == null)
+            {
+                options = new Options();
+            }
         }
         return options;
     }
 
 	public static void deleteRecordStore()
 	{
-		try {
-			RecordStore.deleteRecordStore(RECORD_STORE_NAME);
-			options = new Options();
-		}
-		catch (Exception e) {
-//#ifdef DEBUG_ERR
-//# 			System.out.println("Failed to delete record store: " + e.toString());
-//#endif
-		}
+            try {
+                RecordStore.deleteRecordStore(RECORD_STORE_NAME);
+                options = new Options();
+            } catch (RecordStoreException e) {
+                // Ignored
+            }
 	}
 
     public static void setOptions(Options options) {

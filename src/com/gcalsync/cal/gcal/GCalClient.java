@@ -141,30 +141,26 @@ public class GCalClient {
         }
     }
     
-    public GCalFeed[] downloadFeeds() throws Exception {
+    public GCalFeed[] downloadFeeds() throws GCalException {
         try {
-            byte[] feedsBytes;
-            GCalFeed[] feeds;
+            byte[] feedsBytes = null;
+            GCalFeed[] feeds = null;
             Options options = Store.getOptions();
 
             //try Google account first and if that fails, try Hosted Domain account
             update("Downloading calendar list...");
             feedsBytes = HttpUtil.sendRequest(FEEDS_URL_PREFIX + options.username + "%40gmail.com", HttpsConnection.GET, null, authorizationHeader);
-    //#ifdef DEBUG_INFO
-    //#         System.out.println("Downloaded: " + new String(feedsBytes));
-    //#endif
-            feeds = gCalParser.parseFeeds(feedsBytes);
+            if (feedsBytes != null) {
+                feeds = gCalParser.parseFeeds(feedsBytes);
+            }
 
             if (feeds != null && feeds.length == 0){
                 feedsBytes = HttpUtil.sendRequest(FEEDS_URL_PREFIX + options.username, HttpsConnection.GET, null, authorizationHeader);
-    //#ifdef DEBUG_INFO
-    //# 			System.out.println("Downloaded (HostedDomain): " + new String(feedsBytes));
-    //#endif
                 feeds = gCalParser.parseFeeds(feedsBytes);
             }
 
             return feeds;
-        }catch(Exception e) {
+        }catch(IOException e) {
             throw new GCalException(this.getClass(), "downloadFeeds", e);
         }
     }
@@ -192,14 +188,8 @@ public class GCalClient {
         String parameters = "Email=" + username + "&Passwd=" + password + "&source=Zenior-GCalSync-1&service=cl&accountType=HOSTED_OR_GOOGLE";
         String loginResponse = new String(HttpsUtil.sendRequest(LOGIN_URL, HttpsConnection.POST, parameters, null));
         int lastResponseCode = HttpsUtil.getLastResponseCode();
-//#ifdef DEBUG_INFO
-//# 		System.out.println(loginResponse);
-//#endif
         if (lastResponseCode == HttpsConnection.HTTP_OK) {
             authorizationHeader = getAuthCode(loginResponse);
-//#ifdef DEBUG_INFO
-//# 			System.out.println("Found authentication code '" + authorizationHeader + "'");
-//#endif
             isAuthorized = true;
             //no error
             rval = null;
@@ -232,10 +222,8 @@ public class GCalClient {
         return authCode;
     }
     
-    private byte[] downloadBytes(String isoStartDate, String isoEndDate, String calendarUrl) {
-        //update("Connecting...");
+    private byte[] downloadBytes(String isoStartDate, String isoEndDate, String calendarUrl) throws IOException {
         long lastSync = Store.getTimestamps().lastSync;
-        int index;
         String lastSyncTime;
         String parameters = "start-min=" + isoStartDate + "&start-max=" + isoEndDate;
         
@@ -244,23 +232,7 @@ public class GCalClient {
             parameters += "&updated-min=" + lastSyncTime;
         }
         
-        byte[] downloadResult = HttpUtil.sendRequest(calendarUrl + "?" + encode(parameters), HttpsConnection.GET, null, authorizationHeader);
-        
-//#ifdef DEBUG_INFO
-//#         System.out.println("Calendar begin:");
-//#         System.out.println(new String(downloadResult));
-//#         System.out.println("Calendar end.");
-//#
-//#         if (downloadResult.length < 3000) {
-//#             // Suspiciously short calendar, log it in case it is an error page and not a calendar
-//#             ErrorHandler.log.append(new String(downloadResult) + "\n");
-//#         } else if (ErrorHandler.debugMode) {
-//#             ErrorHandler.log.append(new String(downloadResult) + "\n");
-//#         }
-//#         ErrorHandler.log.append("Downloaded " + downloadResult.length + " bytes\n");
-//#endif
-        
-        return downloadResult;
+        return HttpUtil.sendRequest(calendarUrl + "?" + encode(parameters), HttpsConnection.GET, null, authorizationHeader);
     }
     
     /**
@@ -348,20 +320,10 @@ public class GCalClient {
 
                 update("Uploading \"" + gCalEvent.title + "\"...");
 
-    //#ifdef DEBUG_INFO
-    //#             System.out.println("Uploading gCalEvent using " + method + ":");
-    //#             System.out.println(eventAsXml);
-    //#endif
-
                 byte[] uploadResponse = HttpUtil.sendAtomRequest(url, method, eventAsXml, authorizationHeader);
                 result = HttpUtil.getLastResponseCode();
                 if (result == HttpConnection.HTTP_OK || result == HttpConnection.HTTP_CREATED) update("OK");
                 else update("ERR: (" + result + ") " + HttpUtil.getLastResponseMsg());
-
-    //#ifdef DEBUG_INFO
-    //#             System.out.println("Upload response:");
-    //#             System.out.println(new String(uploadResponse));
-    //#endif
 
                 if (!"GET".equals(method)) {
                     try {

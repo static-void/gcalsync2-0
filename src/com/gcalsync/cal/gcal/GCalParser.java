@@ -37,12 +37,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.util.NoSuchElementException;
 import java.util.Vector;
-
-import javax.microedition.pim.RepeatRule;
-
-import harmony.java.util.StringTokenizer;
 
 import org.kxml.Attribute;
 import org.kxml.Xml;
@@ -62,52 +57,47 @@ import com.gcalsync.cal.Recurrence;
  */
 public class GCalParser {
 
-    public void parseCalendar(byte[] calendarBytes, String title, boolean useRemindersForThisCalendar, Vector gcalEvents) throws Exception {
-        try {
-            GCalEvent gCalEvent;
-            if (calendarBytes != null && calendarBytes.length > 0) {
+    public void parseCalendar(byte[] calendarBytes, String title, boolean useRemindersForThisCalendar, Vector gcalEvents) throws GCalException {
+        GCalEvent gCalEvent;
+        if (calendarBytes != null && calendarBytes.length > 0) {
+            try {
+                InputStreamReader reader = null;
                 try {
-                    InputStreamReader reader = null;
-                    try {
-                        reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes), "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes));
-                    }
-                    XmlParser xmlParser = new GCalXmlParser(reader, 300); //use the customized parser to support Latin1 characters
-                    ParseEvent event = xmlParser.read();
-                    while (!isEnd(event)) {
-                        if (event.getType() == Xml.START_TAG) {
-                            String name = event.getName();
-                            if ("entry".equals(name)) {
-                                gCalEvent = parseEvent(xmlParser);
-                                gCalEvent.parentCalendarTitle = title;
-                                if (!useRemindersForThisCalendar) {
-                                    gCalEvent.reminder = -1;
-                                }
-                                gcalEvents.addElement(gCalEvent);
-                            }
-                        }
-                        event = xmlParser.read();
-                    }
-
-                    //find all recurrence exceptions, search the <gcalEvents> Vector for
-                    // the original events by ID, and add an exception to their repeat rule
-                    GCalEvent origEvent;
-                    for (int i=0; i<gcalEvents.size(); i++) {
-                        gCalEvent = (GCalEvent)gcalEvents.elementAt(i);
-                        if (gCalEvent.origEventId.length() > 0) {
-                            origEvent = findEvent(gcalEvents, gCalEvent.origEventId);
-                            if (origEvent != null && origEvent.recur != null)
-                                origEvent.recur.addExceptDate(gCalEvent.startTime);
-                        }
-                    }
-
-                } catch (IOException e) {
-                    ErrorHandler.showError("Failed to download calendar", e);
+                    reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes), "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    reader = new InputStreamReader(new ByteArrayInputStream(calendarBytes));
                 }
+                XmlParser xmlParser = new GCalXmlParser(reader, 300); //use the customized parser to support Latin1 characters
+                ParseEvent event = xmlParser.read();
+                while (!isEnd(event)) {
+                    if (event.getType() == Xml.START_TAG) {
+                        String name = event.getName();
+                        if ("entry".equals(name)) {
+                            gCalEvent = parseEvent(xmlParser);
+                            gCalEvent.parentCalendarTitle = title;
+                            if (!useRemindersForThisCalendar) {
+                                gCalEvent.reminder = -1;
+                            }
+                            gcalEvents.addElement(gCalEvent);
+                        }
+                    }
+                    event = xmlParser.read();
+                }
+
+                //find all recurrence exceptions, search the <gcalEvents> Vector for
+                // the original events by ID, and add an exception to their repeat rule
+                GCalEvent origEvent;
+                for (int i=0; i<gcalEvents.size(); i++) {
+                    gCalEvent = (GCalEvent)gcalEvents.elementAt(i);
+                    if (gCalEvent.origEventId.length() > 0) {
+                        origEvent = findEvent(gcalEvents, gCalEvent.origEventId);
+                        if (origEvent != null && origEvent.recur != null)
+                            origEvent.recur.addExceptDate(gCalEvent.startTime);
+                    }
+                }
+            } catch (IOException e) {
+                throw new GCalException(this.getClass(), "parseCalendar", e);
             }
-        }catch(Exception e) {
-            throw new GCalException(this.getClass(), "parseCalendar", e);
         }
     }
     
@@ -117,7 +107,6 @@ public class GCalParser {
         
         for (int i=0; i<eventVector.size(); i++) {
             ev = (GCalEvent)eventVector.elementAt(i);
-            
             if (ev.uid.equals(id)) {
                 rval = ev;
                 break;
@@ -127,7 +116,7 @@ public class GCalParser {
         return rval;
     }
     
-    public GCalFeed[] parseFeeds(byte[] feedsBytes) {
+    public GCalFeed[] parseFeeds(byte[] feedsBytes) throws GCalException {
         // extract feed URLs into vector
         Vector feeds = new Vector();
         
@@ -139,7 +128,7 @@ public class GCalParser {
                 } catch (UnsupportedEncodingException e) {
                     reader = new InputStreamReader(new ByteArrayInputStream(feedsBytes));
                 }
-                XmlParser xmlParser = new XmlParser(reader, 300);
+                XmlParser xmlParser = new GCalXmlParser(reader, 300);
                 ParseEvent event = xmlParser.read();
                 while (!isEnd(event)) {
                     if (event.getType() == Xml.START_TAG) {
@@ -153,8 +142,8 @@ public class GCalParser {
                     }
                     event = xmlParser.read();
                 }
-            } catch (Exception e) {
-                ErrorHandler.showError("Failed to download feeds", e);
+            } catch (IOException e) {
+                throw new GCalException(this.getClass(), "parseFeeds", e);
             }
         }
         
@@ -164,7 +153,7 @@ public class GCalParser {
         return feedsArray;
     }
     
-    private GCalEvent parseEvent(XmlParser xmlParser) throws IOException, Exception {
+    private GCalEvent parseEvent(XmlParser xmlParser) throws GCalException {
         try {
             GCalEvent gCalEvent = new GCalEvent();
             ParseEvent nextEvent = xmlParser.peek();
@@ -234,25 +223,36 @@ public class GCalParser {
         }
     }
     
+    /**
+     * Parses gd:reminder and returns reminder in minutes
+     * 
+     * @param event Event
+     * @see http://code.google.com/apis/gdata/elements.html#gdReminder
+     * @return Reminder in minutes
+     */
     private int parseReminder(ParseEvent event) {
-        Attribute minutes = event.getAttribute("minutes");
-        return Integer.parseInt(minutes.getValue());
-    }
-    
-    private void parseRecurrence(XmlParser xmlParser, GCalEvent event) {
-        try {
-            event.recur = new Recurrence(parseTextNode(xmlParser, "recurrence"));
-            event.endTime = event.recur.getEndDateTime();
-            event.startTime = event.recur.getStartDateTime();
-        } catch (Exception e) {
-//#ifdef DEBUG_ERR
-//# 			System.out.println("parseRecurrence() failed: " + e);
-//#endif
+        Attribute units = event.getAttribute("minutes");
+        if (units != null) {
+            return Integer.parseInt(units.getValue());
         }
+        units = event.getAttribute("hours");
+        if (units != null) {
+            return Integer.parseInt(units.getValue()) * 60;
+        }
+        units = event.getAttribute("days");
+        if (units != null) {
+            return Integer.parseInt(units.getValue()) * 24 * 60;
+        }
+        return 0;
     }
     
-    private GCalFeed parseFeedEntry(XmlParser xmlParser) throws IOException, Exception {
-        try {
+    private void parseRecurrence(XmlParser xmlParser, GCalEvent event) throws IOException {
+        event.recur = new Recurrence(parseTextNode(xmlParser, "recurrence"));
+        event.endTime = event.recur.getEndDateTime();
+        event.startTime = event.recur.getStartDateTime();
+    }
+    
+    private GCalFeed parseFeedEntry(XmlParser xmlParser) throws IOException {
         String id = null;
         String title = null;
         String url = null;
@@ -282,15 +282,8 @@ public class GCalParser {
         }
         if (id != null && title != null && url != null) {
             return new GCalFeed(id, title, url);
-        } else {
-//#ifdef DEBUG_ERR
-//#           System.out.println("Failed to parse feed.");
-//#endif
-            return null;
         }
-        }catch(Exception e) {
-            throw new GCalException(this.getClass(), "parseFeedEntry", e);
-        }
+        return null;
     }
     
     
@@ -306,13 +299,12 @@ public class GCalParser {
         return (eventStatus != null) && eventStatus.endsWith("canceled");
     }
     
-    private long[] parseWhen(ParseEvent event) throws Exception {
+    private long[] parseWhen(ParseEvent event) throws GCalException {
         try {
             long[] result = new long[4];
 
             Attribute startTime = event.getAttribute("startTime");
             if ((startTime != null) && (startTime.getValue() != null)) {
-                //System.out.println("Start time: " + startTime.getValue());
                 long[] vals = DateUtil.isoDateToLongExtraInfo(startTime.getValue());
                 result[0] = vals[0];
                 result[1] = vals[1];
@@ -321,7 +313,6 @@ public class GCalParser {
 
             Attribute endTime = event.getAttribute("endTime");
             if ((endTime != null) && (endTime.getValue() != null)) {
-                //System.out.println("End time: " + endTime.getValue());
                 long[] vals = DateUtil.isoDateToLongExtraInfo(endTime.getValue());
                 result[2] = vals[0];
                 result[3] = vals[1];
@@ -341,14 +332,10 @@ public class GCalParser {
      * @returns value of "value"/"valueString" attribute
      */
     private String parseValue(ParseEvent event) {
-        
-        String str;
-        
-        str = event.getValueDefault("value", null);
+        String str = event.getValueDefault("value", null);
         if (str == null) {
             str = event.getValueDefault("valueString", null);
         }
-        
         return str;
     }
     
@@ -357,17 +344,14 @@ public class GCalParser {
         while (!isEnd(nextEvent)) {
             String nextName = nextEvent.getName();
             int type = nextEvent.getType();
-            
-            if ((type == Xml.END_TAG) && name.equals(nextName)) {
+            if (type == Xml.END_TAG && name.equals(nextName)) {
                 // end tag found
                 return null;
             }
             
             xmlParser.read();
             if (type == Xml.TEXT) {
-                String text = nextEvent.getText();
-                //System.out.println("Found event: " + name + "=" + text);
-                return text;
+                return nextEvent.getText();
             }
             nextEvent = xmlParser.peek();
         }
@@ -399,8 +383,7 @@ public class GCalParser {
     }
     
     public String parseUploadResponse(byte[] uploadResponse) throws IOException {
-        XmlParser xmlParser = new XmlParser(new InputStreamReader(new ByteArrayInputStream(uploadResponse)), 300);
-        //return parseTextNode(xmlParser, "id");
+        XmlParser xmlParser = new GCalXmlParser(new InputStreamReader(new ByteArrayInputStream(uploadResponse)), 300);
         return parseTextAttribute(xmlParser, "uid", "value");
     }
     
