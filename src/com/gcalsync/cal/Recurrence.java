@@ -80,6 +80,7 @@ public class Recurrence {
         this.tzCodeStd = null;
         this.tzCodeDay = null;
         this.tzName = null;
+        this.interval = 1;
     }
     
     /**
@@ -1052,16 +1053,17 @@ public class Recurrence {
      * "RRULE"<br> <code>subFields[1]</code>: "FREQ=MONTHLY"<br>
      * <code>subFields[1]</code>: "INTERVAL=2"<br>
      */
-    void processRRULE(String field, StringTokenizer subFields) {
-        String subField;
-        String value;
-        
+    private void processRRULE( String field, StringTokenizer subFields) {
         while (subFields.hasMoreTokens()) {
             //create new RepeatRule
-            if (this.repeatRule == null) this.repeatRule = new RepeatRule();
+            if (this.repeatRule == null) {
+                this.repeatRule = new RepeatRule();
+                // default values
+                this.repeatRule.setInt(RepeatRule.FREQUENCY, RepeatRule.DAILY);
+                this.repeatRule.setInt(RepeatRule.INTERVAL, 1);
+            }
             
-            subField = subFields.nextToken();
-            
+            String subField = subFields.nextToken();
             if (subField.startsWith("FREQ")) {
                 try {
                     if (subField.indexOf("YEARLY") >= 0) {
