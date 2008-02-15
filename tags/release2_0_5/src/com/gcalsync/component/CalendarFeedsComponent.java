@@ -26,16 +26,30 @@ import javax.microedition.lcdui.*;
 import java.util.Vector;
 
 /**
+ * Public class that sets menu and button options for the Personal Calendars 
+ * form/screen on the device. The Personal Calendars screen displays after a user has
+ * authenticated to Google Calendar through the default Login screen. 
+ * This screen displays calendar feeds that are available for syncing 
+ * and a syncing menu with options to start or cancel the syncing process. 
+ * <p>
+ * - Gets form for the component and displays on screen<br> 
+ * - Creates menu choices and handles button and menu events for the form<br>
+ * - Downloads the calendar list for the current user and adds the list to the form<br>
+ * - Downloads the event details and reminders for calendars<br> 
+ * - Copies saved calendar settings (details and reminders) into new calendar list<br>
+ * 
  * @author 
  * @version
  * @date 
  */
 public class CalendarFeedsComponent extends MVCComponent implements Runnable
 {
-	static final Command CMD_OPTIONS = new Command("Options", Command.ITEM, 3);
+	//creates the menu choices for Personal Calendars screen 
+        static final Command CMD_OPTIONS = new Command("Options", Command.ITEM, 3);
 	static final Command CMD_SYNC = new Command("Sync", "Start sync", Command.ITEM, 1);
 	static final Command CMD_FULL_SYNC = new Command("Full Sync", "Start full sync", Command.ITEM, 1);
-	static final Command CMD_CANCEL = new Command("Cancel", Command.CANCEL, 4);
+	//cancel command for device button
+        static final Command CMD_CANCEL = new Command("Cancel", Command.CANCEL, 4);
 	static final Command CMD_DOWNLOAD_LIST = new Command("Download", "Download calendar list", Command.ITEM, 2);
         static final Command CMD_AUTO_SYNC = new Command("Auto Sync", "Start Auto Sync", Command.ITEM, 4);
 
@@ -110,6 +124,7 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 
 	/**
      * Handles commands from the menu, buttons, and links
+     * for the Personal Calendars screen in device
      *
      * @param c command to execute
      * @param d <code>Displayable</code> from which the
@@ -119,34 +134,45 @@ public class CalendarFeedsComponent extends MVCComponent implements Runnable
 	{
             try {
                 boolean showNoCalendarSelectedAlert = false;
-
+                //if user selects "Download calendar list" from menu, download calendars (feeds)   
 		if (c == CMD_DOWNLOAD_LIST)
 			downloadFeeds();
-		else if (c == CMD_OPTIONS)
+		//if user selects "Options" from menu, display Options screen   
+                else if (c == CMD_OPTIONS)
 			Components.options.showScreen(this);
-		else if (c == CMD_CANCEL)
+		//if user selects "Cancel" button, display Login screen  
+                else if (c == CMD_CANCEL) 
 			Components.login.showScreen();
-		else if (c == CMD_SYNC || c == CMD_FULL_SYNC)
+		//if user selects "Start Sync" Or "Start Full Sync" from menu
+                else if (c == CMD_SYNC || c == CMD_FULL_SYNC)
 		{
-			if (isSelected(syncChoices))
+		       //if user has checked/selected calendars on the form to sync  	
+                       if (isSelected(syncChoices))
 			{
-				if (c == CMD_FULL_SYNC)
-					Store.getTimestamps().lastSync = 0;
-
+			   //if user selected "Start Full Sync" from menu	
+                           if (c == CMD_FULL_SYNC)
+			       //store timestamp of sync		
+                               Store.getTimestamps().lastSync = 0;
+                                //Save sync and reminder settings for all calendars
 				saveCalendarSettings();
 				new SyncComponent(gCalClient, feeds).handle();
 			}
 			else
 			{
-				showNoCalendarSelectedAlert = true;
+				//if no calendar lists (feeds) are selected for sync in form, display alert
+                                showNoCalendarSelectedAlert = true;
 			}
 		}
+                //if user has selected "Start Auto Sync" from menu
                 else if(c == CMD_AUTO_SYNC) {
+                    //if user has selected calendars (feeds) on the form to sync 
                     if (isSelected(syncChoices)) {
+                        //Save sync and reminder settings for all calendars
                         saveCalendarSettings();
                         new AutoSyncComponent(gCalClient, feeds).handle();
                     }
                     else {
+                        //if no calendar lists are selected for sync in form, display alert
                         showNoCalendarSelectedAlert = true;
                     }
                 }
