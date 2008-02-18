@@ -24,7 +24,7 @@ import javax.microedition.lcdui.List;
 /**
  * Public class responsible for drawing the display and menu choices for the Options
  * screen. Uses the MVCComponent base class to retrieve, draw, and update screens.  
- * Passes conrtol to handlers when a user selects a choice from the Options menu.
+ * Passes control to handlers when a user selects a choice from the Options menu.
  *  
  * @author Thomas Oldervoll, thomas@zenior.no
  * @author $Author$
@@ -111,7 +111,7 @@ public class OptionsComponent extends MVCComponent {
                                     //draw the Options menu screen on the display
                                     nextDisplay.showScreen(false);
               //if user selects a choice from the Options screen menu, 
-              //pass off actionCommand to selected component
+              //passes control to selected component
             } else if (command == List.SELECT_COMMAND) {
                 int choice = menu.getSelectedIndex();
                 switch (choice) {
