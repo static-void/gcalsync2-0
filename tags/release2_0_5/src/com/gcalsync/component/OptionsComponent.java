@@ -22,6 +22,10 @@ import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.List;
 
 /**
+ * Public class responsible for drawing the display and menu choices for the Options
+ * screen. Implements the commands when a use selects a choice from the menu. 
+ * Uses the MVCComponent base class to retrieve, draw, and update screens.  
+ *  
  * @author Thomas Oldervoll, thomas@zenior.no
  * @author $Author$
  * @version $Rev: 24 $
@@ -33,28 +37,57 @@ public class OptionsComponent extends MVCComponent {
 	MVCComponent nextDisplay;
 
 
+    /**
+     * Displayable is an object that can be placed on the display.<br>
+     * Returns the screen object from the derived class.<br>
+     *
+     * @returns <code>menu</code>
+     */    
     public Displayable getDisplayable() {
         return menu;
     }
 
+    /**
+     * Initializes the model before creating the view
+     *
+     */
     protected void initModel() {
     }
-
+    
+    /**
+     * Creates a view from the current model into the screen object.<br> 
+     * Creates the on-screen menu choices for the Options Menu screen.
+     * 
+     */
     protected void createView() {
+        //menu displays on-screen (not a popup menu)
         menu = new List("Options menu", List.IMPLICIT);
         menu.append("Sync period", null);
         menu.append("Time zone", null);
         menu.append("Upload/download", null);
         menu.append("Autosync period", null);
 	menu.append("Reset options", null);
+        //cancel command for device button
         Command cancelCommand = new Command("Cancel", Command.CANCEL, 2);
         menu.addCommand(cancelCommand);
         menu.setCommandListener(this);
     }
-
+    
+    /**
+     * Updates the screen object when the model changes 
+     *
+     */
     protected void updateView() {
     }
-
+        /**
+         * Gets the next displayable screen and draws it on the display. 
+         *
+         * @param nextDisplayable uses MVCComponent methods to draw next displayable
+         *                   screen based on user interaction with the interface
+         *                   through implementation of <code>commandAction</code>
+         * @throws GCalException that returns ErrorHandler.showError
+         *                               ("Error showing screen", e);
+         */
 	public void showScreen(MVCComponent nextDisplayable) throws Exception
 	{
             try {
@@ -67,13 +100,18 @@ public class OptionsComponent extends MVCComponent {
 
     public void commandAction(Command command, Displayable displayable) {
         try {
+            //if user selects the "Cancel" button
             if (command.getCommandType() == Command.CANCEL) {
-
-                            if (nextDisplay == null) 
+                            //if the user is on the Options menu screen
+                            if (nextDisplay == null)  
+                                    //fetch and draw the login screen
                                     Components.login.showScreen(false);
-                            else
+                            //if the user is viewing one of the Options from the menu
+                            else 
+                                    //draw the Options menu screen on the display
                                     nextDisplay.showScreen(false);
-
+              //if user selects a choice from the Options screen menu, 
+              //pass off actionCommand to selected component
             } else if (command == List.SELECT_COMMAND) {
                 int choice = menu.getSelectedIndex();
                 switch (choice) {
