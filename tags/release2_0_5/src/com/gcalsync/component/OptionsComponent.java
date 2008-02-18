@@ -23,8 +23,8 @@ import javax.microedition.lcdui.List;
 
 /**
  * Public class responsible for drawing the display and menu choices for the Options
- * screen. Implements the commands when a use selects a choice from the menu. 
- * Uses the MVCComponent base class to retrieve, draw, and update screens.  
+ * screen. Uses the MVCComponent base class to retrieve, draw, and update screens.  
+ * Passes conrtol to handlers when a user selects a choice from the Options menu.
  *  
  * @author Thomas Oldervoll, thomas@zenior.no
  * @author $Author$
