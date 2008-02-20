@@ -28,8 +28,21 @@ import com.gcalsync.log.*;
 import com.gcalsync.cal.*;
 
 /**
+ * Public class responsible for drawing the Commit screen and displaying the status of uploads/downloads. 
+ * The Preview screen displays events that are available for upload/download. 
+ * The user selects "Commit" from the Preview screen to write events to the device or to the calendar. 
+ * The application draws the Commit screen in response to the user selecting "Commit". 
  *
+ * This class is also responsible for displaying the results of download/upload events, 
+ * initiating upload/download events, and instantiation of a new instance of the 
+ * CommitEngine class that handles the download/upload of events. 
+ * <p>
+ * This class uses the MVCComponent base class to retrieve, draw, and update screens.<br>
+ * 
+ *  
  * @author
+ * @see <code>CommitEngine<code/> for code that was commented out and moved 
+ *                                           to com.gcalsync.cal.CommitEngine. 
  */
 public class CommitComponent extends MVCComponent implements Runnable, StatusLogger {
     Form form;
@@ -72,9 +85,11 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     }
     
     /**
-     * Appends a message to the current form
+     * Appends a message to the current form <br>
+     * Displays the statistics (results) of the uploads and 
+     * downloads that occurred during the commit event 
      *
-     * @param message to be displayed
+     * @param message (results of commit event)to be displayed
      */
     public void update(String message) {
         form.append(message + "\n");
@@ -91,7 +106,8 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     }
     
     /**
-     * Processes menu commands
+     * Processes menu commands <br>
+     * If the user presses the Exit button, show the login screen
      *
      * @param c command to execute
      * @param d <code>Displayable</code> from which the command
@@ -110,6 +126,7 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     /**
      * Updates screen and begins processing events to be
      * downloaded/uploaded
+     *
      */
     public void handle() throws Exception {
         try {
@@ -141,6 +158,8 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
             int[] commnitStatistics = commitEngine.commitSync(this.uploads, this.downloads, this.gCalClient, this.form);
             
             this.form.append(new Spacer(getDisplayable().getWidth(), 20));
+            //creates the message that displays the results of commit event 
+            //message displayed through the <code>update</code> method
             update("GCal:  " + gCalClient.createdCount + " new, " + gCalClient.updatedCount + " updated, " + gCalClient.removedCount + " removed events");
             update("Phone: " + commnitStatistics[0] + " new, " + commnitStatistics[1] + " updated, " + commnitStatistics[2] + " removed events");
             
@@ -241,14 +260,24 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     
     /**
      * Sets the events to be uploaded/downloaded
+     *
+     * @param uploads is the destination array for upload events - 
+     *              array values were copied from GCalEvent[] source array
+     * @param downloads is the destination array for download events - 
+     *              array values were copied from GCalEvent[] source array
      */
     public void setEvents(GCalEvent[] uploads, GCalEvent[] downloads) throws Exception {
         try {
             if (uploads != null) {
+                //Copies <code>GCalEvent[]</code> (the specified source array)beginning 
+                //at the specified position, to the specified position of the destination 
+                //<code>uploads</code>array.
                 this.uploads = new GCalEvent[uploads.length];
                 System.arraycopy(uploads, 0, this.uploads, 0, uploads.length);
             }
-
+                //Copies <code>GCalEvent[]</code> (the specified source array)beginning 
+                //at the specified position, to the specified position of the destination 
+                //<code>downloads</code>array.
             if (downloads != null) {
                 this.downloads = new GCalEvent[downloads.length];
                 System.arraycopy(downloads, 0, this.downloads, 0, downloads.length);
