@@ -75,9 +75,10 @@ public class AboutComponent extends MVCComponent
 											Font.STYLE_BOLD,
 											Font.SIZE_SMALL);
 		String str;
+                //Gets midlet properties to display screen title and form contents
                 //fetches the midlet name and assigns to str 
 		str = this.midlet.getAppProperty("MIDlet-Name");
-                //if string is not empty, str = About + Midlet 
+                //if string is not empty, str = About + Midlet Name
 		if (str != null)
 			str = "About " + str;
                 //if string is empty, str = About
@@ -91,6 +92,8 @@ public class AboutComponent extends MVCComponent
 
 		try 
 		{
+                        //Gets midlet properties to display version, build date, and 
+                        //project URL to display on form
                         //fetches midlet version and assigns to str
 			str = this.midlet.getAppProperty("MIDlet-Version");
 			//if str is not empty
@@ -109,7 +112,7 @@ public class AboutComponent extends MVCComponent
 			{
 				lblBuildDate.setFont(labelFont);
 				this.form.append(lblBuildDate);
-				//display value of str on form through append
+				//display value of str on form 
                                 this.form.append(str);
 				this.form.append(new Spacer(getDisplayable().getWidth(), 5));
 			}
@@ -120,7 +123,7 @@ public class AboutComponent extends MVCComponent
 			{
 				lblProjectHomepage.setFont(labelFont);
 				this.form.append(lblProjectHomepage);
-				//display value of str on form through append
+				//display value of str on form 
                                 this.form.append(str);
 				this.form.append(new Spacer(getDisplayable().getWidth(), 5));
 			}
@@ -128,7 +131,7 @@ public class AboutComponent extends MVCComponent
 		catch (Exception e) {}
 
 		lblDisclaimer.setFont(labelFont);
-		//display Disclaimer on form through append
+		//display Disclaimer on form 
                 this.form.append(lblDisclaimer);
 		this.form.append("THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.");
     }
