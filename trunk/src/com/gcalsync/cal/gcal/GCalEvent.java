@@ -116,11 +116,11 @@ public class GCalEvent {
                     "term='http://schemas.google.com/g/2005#event'></category>\n");
 
             //insert event title
-            stringBuffer.append("<title type='text'>" + encode(this.title) + "</title>\n");
+            stringBuffer.append("<title type='text'>" + this.title + "</title>\n");
 
             //insert event comments
             if (this.note != null && !this.note.equals(""))
-                stringBuffer.append("<content type='text'>" + encode(this.note) + "</content>");
+                stringBuffer.append("<content type='text'>" + this.note + "</content>");
 
             //insert event status
             if (this.cancelled)
@@ -167,7 +167,7 @@ public class GCalEvent {
 
             //insert event location
             if (this.location != null && this.location.equals("") == false)
-                stringBuffer.append("<gd:where valueString='" + encode(this.location) + "'/>");
+                stringBuffer.append("<gd:where valueString='" + this.location + "'/>");
 
 
             //insert uid
@@ -185,31 +185,6 @@ public class GCalEvent {
         }catch(Exception e) {
             throw new GCalException(this.getClass(), "asXML", e);
         }
-    }
-    
-    String encode(String in) {
-        StringBuffer sb = new StringBuffer();
-        char[] c = in.toCharArray();
-        
-        for (int i=0; i<c.length; i++) {
-            
-                        /* Encode special characters in UTF-8. For example, the
-                        character 'ä' (ASCII code 0xE4) is represented in UTF-8
-                        as two bytes: 0xC3 0xA4, where 0xC3 is the ASCII code
-                        for 'Ã' and 0xA4 is the original character's ASCII code
-                        adjusted by '@' (ASCII code 0x40). */
-            if (c[i] >= '¡' && c[i] <= '¿') {
-                sb.append('Â');
-                sb.append(c[i]);
-            } else if (c[i] >= 'À' && c[i] <= 'ÿ') {
-                sb.append('Ã');
-                sb.append((char)(c[i] - '@'));
-            } else {
-                sb.append(c[i]);
-            }
-        }
-        
-        return sb.toString();
     }
     
     public boolean isAllDay() {
