@@ -24,12 +24,23 @@ import javax.microedition.midlet.MIDletStateChangeException;
 import com.gcalsync.component.*;
 import com.gcalsync.log.*;
 
-
+/**
+ * Public class responsible for starting the application through extension of MIDlet class.
+ * Allows application management to control MIDlet, retrieve device properties, 
+ * notify and request state changes. 
+ * Methods allow the application management software to create, start, pause, and destroy MIDlet.  
+ */  
 public class GCalSync extends MIDlet {
 
     private Display display;
     private static boolean started = false;
-
+    
+    /**
+     * Signals MIDlet it has entered the Active state
+     *
+     * @throws MIDletStateChangeException when a requested state change failed
+     *        in response to state change calls into the application via the MIDlet interface 
+     */
     protected void startApp() throws MIDletStateChangeException {
         //check if the program has already started, this is needed when the program hides
         //and re appears - if the program is re apearing then do not show the login screen,
@@ -44,7 +55,9 @@ public class GCalSync extends MIDlet {
             Components.login.handle();
         }
     }
-
+    
+    //Verifies if device has a Personal Information Manager (PIM) 
+    //PIM is required to run the application - method should return immediately
     private boolean checkRequirements() {
         String pimVersion = System.getProperty("microedition.pim.version");
         if (pimVersion == null) {
@@ -53,6 +66,15 @@ public class GCalSync extends MIDlet {
             Command exitCommand = new Command("Exit", Command.EXIT, 2);
             messageForm.addCommand(exitCommand);
             messageForm.setCommandListener(new CommandListener() {
+                
+                /**
+                 * Processes menu commands
+                 * Notifies MIDlet it has entered Destroyed state
+                 *
+                 * @param command is command to execute
+                 * @param displayable the form from which <code>command</code>
+                 *                    originates
+	         */
                 public void commandAction(Command command, Displayable displayable) {
                     notifyDestroyed();
                 }
@@ -71,10 +93,15 @@ public class GCalSync extends MIDlet {
         MVCComponent.display = display;
 		Components.login.setMidlet(this);
     }
-
+    /**
+     * Signals MIDlet to enter paused state - okay to pause threads
+     */
     protected void pauseApp() {
     }
-
+    
+    /**
+     * Signals MIDlet to terminate and enter the Destroyed state for cleanup
+     */
     protected void destroyApp(boolean b) {
     }
 
