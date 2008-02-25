@@ -24,6 +24,17 @@ import com.gcalsync.store.Store;
 import com.gcalsync.option.Options;
 
 /**
+ * Public class responsible for drawing the Login screen, setting items to display 
+ * on the screen, and setting up commands for user interaction. This is the first screen
+ * the user sees when first accessing the application. This class uses the 
+ * MVCComponent base class to retrieve, draw, and update screens.
+ * <p>
+ * - Links the Login Component to the specified MIDlet.<br>
+ * - Updates the screen and begins auto sign-in if so configured.<br> 
+ * - Handles the options to auto save the user login name and password. <br>
+ * - Runs the login in process. 
+ * <p>
+ *
  * @author $Author$
  * @version $Rev$
  * @date $Date$
