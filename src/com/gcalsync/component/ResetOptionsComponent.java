@@ -19,6 +19,14 @@ import com.gcalsync.log.ErrorHandler;
 import javax.microedition.lcdui.*;
 import com.gcalsync.store.Store;
 
+/**
+ * Public class responsible for drawing the display for the Reset Options screen. 
+ * The Reset Options screen provides the ability for a user to delete the 
+ * Midlet record store (persistent storage) from the device. This screen is 
+ * accessible through the Menu button on the Login screen. Uses the 
+ * MVCComponent base class to retrieve, draw, and update screens. 
+ *  
+ */
 public class ResetOptionsComponent extends MVCComponent implements Runnable
 {
 	static final Command CMD_CANCEL = new Command("Cancel", Command.CANCEL, 4);
