@@ -14,7 +14,7 @@
    limitations under the License.
 */
 /*
- * *
+ *  *
  * @author Agustin Rivero
  * @version $Rev: 1 $
  * @date $Date: 2007-12-07 $
@@ -31,7 +31,18 @@ import javax.microedition.lcdui.Form;
 import javax.microedition.lcdui.TextField;
 
 /**
- * Component to configure the time between auto syncs
+ * Public class to configure the time between auto syncs
+ * This class uses the MVCComponent base class to retrieve, 
+ * draw, and update screens. 
+ *
+ * This component is accessed in the device through the following steps:
+ * <ol>
+ * <li>User logs into application</li>
+ * <li>On personal calendars screen, user clicks Menu button</li>
+ * <li>User selects "Options" from menu</li>
+ * <li>User selects "AutoSync Period" from menu</li>
+ * </ol> 
+ * 
  * @author Agustin
  * @author Yusuf Abdi
  * @version $Rev: 1 $
@@ -44,18 +55,21 @@ public class AutosyncPeriodComponent extends MVCComponent {
     private TextField periodField;
     private Command saveCommand;
     
+    //gets the form for this component
     public Displayable getDisplayable() {
         return form;
     }
     
+    //initializes the model before creating the view
     protected void initModel() {
         // done in constructor
     }
     
+    //Creates the view
     protected void createView() throws Exception {
         try {
             form = new Form("AutoSync period");
-
+            //textbox for user to enter time between auto syncs
             periodField = new TextField("Period (mins)", Integer.toString(Store.getOptions().autosyncTime), 4, TextField.NUMERIC);
             form.append(periodField);
 
@@ -70,7 +84,7 @@ public class AutosyncPeriodComponent extends MVCComponent {
             throw new GCalException(this.getClass(), "createView", e);
         }
     }
-    
+    //displays the sync period in the form
     protected void updateView() throws Exception {
         try {
             periodField.setString(Integer.toString(Store.getOptions().autosyncTime));
@@ -79,21 +93,30 @@ public class AutosyncPeriodComponent extends MVCComponent {
         }
     }
     
+    //processes button commands
     public void commandAction(Command command, Displayable displayable) {
         try {
+            //if user presses "Save" button device
             if (command.getLabel().equals(saveCommand.getLabel())) {
+                //if boolean <setOptions> returned true,
                 if (setOptions()) {
+                    //save the sync period to the device using 
+                    //the Store.java <saveOptions> method
                     Store.saveOptions();
+                    //display the Options screen
                     Components.options.showScreen();
                 }
+              //or, if the user presses the "Cancel" button on the device  
             } else if (command.getCommandType() == Command.CANCEL) {
+                //display the Options screen
                 Components.options.showScreen();
             }
         }catch(Exception e) {
             ErrorHandler.showError(e);
         }
     }
-    
+    //verifies the user entered a number in the period field
+    //returns true if the user entered a number, returns false if not a number
     private boolean setOptions() throws Exception {
         try {
             Store.getOptions().autosyncTime = Integer.parseInt(periodField.getString());
