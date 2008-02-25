@@ -270,7 +270,7 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
      * Sets the events to be uploaded/downloaded.
      * This method copies array values from <GCalEvent[]> source arrays. 
      * The uploads and downloads arrays are called to the CommitEngine.java class
-     * by the <processUploadEvents> and the <processDownloadEvents> methods 
+     * by the <code>processUploadEvents</code> and the <code>processDownloadEvents</code> methods 
      * to write records to the Google Calendar or to the Device.
      *
      * @param uploads is the destination array for upload events - 
