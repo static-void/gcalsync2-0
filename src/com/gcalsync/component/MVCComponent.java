@@ -125,8 +125,11 @@ public abstract class MVCComponent implements CommandListener {
         showScreen();
     }
 
-    // Initialize. If a data member is not backed by RMS, make sure
-    // it is uninitilzed (null) before you put in values.
+    /**
+     * Initialize the model - If a data member is not backed by RMS, make sure
+     * it is uninitilzed (null) before you put in values.
+     *
+     */
     protected abstract void initModel() throws Exception;
     
     /**
