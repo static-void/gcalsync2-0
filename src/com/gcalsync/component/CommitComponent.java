@@ -28,8 +28,28 @@ import com.gcalsync.log.*;
 import com.gcalsync.cal.*;
 
 /**
+ * Public class responsible for drawing the Commit screen and displaying the 
+ * status of uploads/downloads.
+ * <p>
+ * <ol>
+ * <li>The Preview screen displays events that are available for upload/download.</li> 
+ * <li>The user selects "Commit" from the Preview screen to write events to the 
+ * device or to the calendar.</li> 
+ * <li>The application draws the Commit screen in response to the user selecting "Commit".</li>
+ * </ol>
+ * 
+ * <p> 
  *
+ * This class is also responsible for displaying the results of download/upload events, 
+ * initiating upload/download events, and instantiation of a new instance of the 
+ * CommitEngine class that handles the download/upload of events. 
+ * <p>
+ * This class uses the MVCComponent base class to retrieve, draw, and update screens.<br>
+ * 
+ *  
  * @author
+ * @see <code>CommitEngine<code/> for code in this class that was commented out and moved 
+ *                                           to com.gcalsync.cal.CommitEngine. 
  */
 public class CommitComponent extends MVCComponent implements Runnable, StatusLogger {
     Form form;
@@ -72,9 +92,11 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     }
     
     /**
-     * Appends a message to the current form
+     * Appends a message to the current form <br>
+     * Displays the statistics (results) of the uploads and 
+     * downloads that occurred during the commit event 
      *
-     * @param message to be displayed
+     * @param message (results of commit event)to be displayed
      */
     public void update(String message) {
         form.append(message + "\n");
@@ -91,7 +113,8 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     }
     
     /**
-     * Processes menu commands
+     * Processes menu commands <br>
+     * If the user presses the Exit button, show the login screen
      *
      * @param c command to execute
      * @param d <code>Displayable</code> from which the command
@@ -138,9 +161,13 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
             */
             
             CommitEngine commitEngine = new CommitEngine();
+            //<int[]> is called from the CommitEngine class that processes the statistics
+            //to display on this screen
             int[] commnitStatistics = commitEngine.commitSync(this.uploads, this.downloads, this.gCalClient, this.form);
             
             this.form.append(new Spacer(getDisplayable().getWidth(), 20));
+            //creates the message that displays the results of commit events on the screen 
+            //message displayed through the <code>update</code> method
             update("GCal:  " + gCalClient.createdCount + " new, " + gCalClient.updatedCount + " updated, " + gCalClient.removedCount + " removed events");
             update("Phone: " + commnitStatistics[0] + " new, " + commnitStatistics[1] + " updated, " + commnitStatistics[2] + " removed events");
             
@@ -240,7 +267,16 @@ public class CommitComponent extends MVCComponent implements Runnable, StatusLog
     }*/
     
     /**
-     * Sets the events to be uploaded/downloaded
+     * Sets the events to be uploaded/downloaded.
+     * This method copies array values from <GCalEvent[]> source arrays. 
+     * The uploads and downloads arrays are called to the CommitEngine.java class
+     * by the <processUploadEvents> and the <processDownloadEvents> methods 
+     * to write records to the Google Calendar or to the Device.
+     *
+     * @param uploads is the destination array for upload events - 
+     *              array values were copied from <GCalEvent[]> source array
+     * @param downloads is the destination array for download events - 
+     *              array values were copied from <GCalEvent[]> source array
      */
     public void setEvents(GCalEvent[] uploads, GCalEvent[] downloads) throws Exception {
         try {
