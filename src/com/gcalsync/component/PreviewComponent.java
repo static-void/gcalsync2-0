@@ -23,10 +23,26 @@ import com.gcalsync.log.ErrorHandler;
 import com.gcalsync.log.GCalException;
 import com.gcalsync.store.Store;
 
+/**
+ * Public class responsible for drawing the display and options for the Preview
+ * screen. The Preview screen displays events that are available for upload/download.
+ * Uses the MVCComponent base class to retrieve, draw, and update screens. 
+ * <ol>
+ * <li>User signs into the application.</li> 
+ * <li>Application displays calendars that are available for syncing.</li> 
+ * <li>User selects calendars to sync.</li>
+ * <li>User selects sync option through menu button on device.</li>
+ * <li>Application fetches events that are available for syncing and displays 
+ *     in the Preview screen.</li>
+ * </ol>
+ *  
+ */
 public class PreviewComponent extends MVCComponent 
 {
-	static final Command CMD_CANCEL = new Command("Cancel", Command.CANCEL, 4);
-	static final Command CMD_COMMIT = new Command("Commit", "Commit selected events", Command.ITEM, 2);
+	//sets cancel button on device
+        static final Command CMD_CANCEL = new Command("Cancel", Command.CANCEL, 4);
+	//sets items on menu that display when a user presses the Menu button on the device
+        static final Command CMD_COMMIT = new Command("Commit", "Commit selected events", Command.ITEM, 2);
 	static final Command CMD_SELECT_DL = new Command("Select DLs", "Select all download events", Command.ITEM, 1);
 	static final Command CMD_SELECT_UL = new Command("Select ULs", "Select all upload events", Command.ITEM, 1);
 	static final Command CMD_UNSELECT = new Command("Unselect", "Unselect all events", Command.ITEM, 1);
@@ -77,7 +93,7 @@ public class PreviewComponent extends MVCComponent
 		//add download choices to form
 		if (downloads != null) addEvents(false);
 
-		//add commit command only if choices exist
+		//add commit command to menu only if choices exist
 		if ((this.downloads != null && this.downloads.length > 0) 
 			|| (this.uploads != null && this.uploads.length > 0))
 		{
