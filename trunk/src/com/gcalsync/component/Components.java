@@ -18,6 +18,10 @@ package com.gcalsync.component;
 import com.gcalsync.log.ErrorHandler;
 
 /**
+ * Public class for instantiation of components. Each component is a screen
+ * that is an independent functional unit with its own event handlers, 
+ * transparent data models, and UI view generator.  
+ * 
  * @author Thomas Oldervoll, thomas@zenior.no
  * @author $Author$
  * @version $Rev: 25 $
@@ -31,8 +35,8 @@ public class Components {
     public static TimeZoneComponent timeZone = new TimeZoneComponent();
     public static UploadDownloadComponent uploadDownload = new UploadDownloadComponent();
     public static CalendarFeedsComponent feeds = new CalendarFeedsComponent();
-	public static ResetOptionsComponent resetOptions = new ResetOptionsComponent();
-	public static PublicCalendarsComponent pubCal = new PublicCalendarsComponent();
+    public static ResetOptionsComponent resetOptions = new ResetOptionsComponent();
+    public static PublicCalendarsComponent pubCal = new PublicCalendarsComponent();
     public static AutosyncPeriodComponent autosyncPeriodComponent = new AutosyncPeriodComponent();
     
     static {
