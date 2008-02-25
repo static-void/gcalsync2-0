@@ -40,6 +40,9 @@ import javax.microedition.lcdui.StringItem;
 
 /**
  * Component that implements the autosync functionality
+ * This class uses the MVCComponent base class to retrieve, draw, and update 
+ * component screen
+ *
  * @author Agustin
  * @author Yusuf Abdi
  * @version $Rev: 1 $
@@ -77,13 +80,27 @@ public class AutoSyncComponent extends MVCComponent {
         lblTimeInfo = new StringItem("Sync in: ", null);
         lblTimeInfo.setFont(labelFont);
     }
-    
+   
+   /**
+    * Gets the form for this component
+    *
+    * @returns <code>form</code>
+    */
     public Displayable getDisplayable() {return this.form;}
-    
+   
+   /**
+    * Updates the view after it is created
+    */
     protected void updateView() {}
-    
+   
+   /**
+    * Initializes the model before creating the view
+    */
     protected void initModel() {}
     
+   /**
+    * Creates the view
+    */
     protected void createView() {
         this.form = new Form("Auto Synchronization");
         this.form.addCommand(CMD_STOP);
@@ -99,7 +116,16 @@ public class AutoSyncComponent extends MVCComponent {
             throw new GCalException(this.getClass(), "handle", e);
         }
     }
-    
+    	
+   /**
+    * Processes menu commands
+    * When user clicks the "Stop" button, autosync and timer are stopped, 
+    * and login screen is displayed. <br> 
+    *
+    * @param c command to execute
+    * @param displayable the form from which <code>command</code>
+    *                    originates
+	*/
     public void commandAction(Command c, Displayable displayable) {
         try {
             if (c.getCommandType() == Command.STOP) {
